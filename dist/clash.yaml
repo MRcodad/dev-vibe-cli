@@ -1,0 +1,14 @@
+# MRCODAD V2Ray Subscription for Clash Meta
+port: 7890
+socks-port: 7891
+allow-lan: true
+mode: rule
+log-level: info
+proxies:
+  # Base V2Ray configs provided as raw list
+  # Sub Link: https://raw.githubusercontent.com/MRcodad/dev-vibe-cli/main/dist/sub.txt
+proxy-groups:
+  - name: ⚡ MRCODAD-AUTO
+    type: select
+    proxies:
+      - DIRECT
