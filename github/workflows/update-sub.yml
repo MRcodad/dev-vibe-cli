@@ -1,0 +1,32 @@
+name: Auto Update Subscriptions
+
+on:
+  schedule:
+    - cron: '0 */2 * * *' # اجرای خودکار هر ۲ ساعت
+  workflow_dispatch:
+
+jobs:
+  build-and-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run 3-Stage Config Test
+        run: npm run update-sub
+
+      - name: Commit and Push Updated Sub Link
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add dist/
+          git commit -m "chore: auto-update sub configs [skip ci]" || exit 0
+          git push
