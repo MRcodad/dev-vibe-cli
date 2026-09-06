@@ -4,16 +4,17 @@ import axios from 'axios';
 import ora from 'ora';
 import chalk from 'chalk';
 
-const HIGH_QUALITY_SOURCES = [
+// سورس‌های بسیار تازه و با نرخ اتصال بالا برای ایران
+const FRESH_SOURCES = [
   'https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/reality/mix',
   'https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/vless/mix',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1.txt',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub2.txt',
-  'https://raw.githubusercontent.com/MahdiKhody/v2ray-collector/main/sub/mix',
-  'https://raw.githubusercontent.com/soroushmirzaei/telegram-v2ray-configs/main/sub/vmess',
-  'https://raw.githubusercontent.com/soroushmirzaei/telegram-v2ray-configs/main/sub/vless',
-  'https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Sub26.txt',
-  'https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/subscriptions/v2ray/super-sub.txt'
+  'https://raw.githubusercontent.com/freefq/free/master/v2',
+  'https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray',
+  'https://raw.githubusercontent.com/erfan-f/v2ray-collector/main/sub/reality.txt',
+  'https://raw.githubusercontent.com/Mazaheri-Dev/v2ray-configs/main/vless.txt',
+  'https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY_LIVE.txt'
 ];
 
 function getFlagEmoji(countryCode) {
@@ -75,29 +76,28 @@ function parseConfigs(rawData) {
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال استخراج و ساخت سابسکریپشن بدون ریزش...').start();
+  const spinner = ora('در حال جمع‌آوری تازه ترین کانفیگ‌های REALITY و VLESS...').start();
   let rawConfigs = [];
 
-  for (const url of HIGH_QUALITY_SOURCES) {
+  for (const url of FRESH_SOURCES) {
     try {
       const res = await axios.get(url, { timeout: 8000 });
       rawConfigs.push(...parseConfigs(res.data));
     } catch {}
   }
 
+  // حذف تکراری‌ها
   rawConfigs = [...new Set(rawConfigs)];
-  spinner.succeed(`مجموعاً ${rawConfigs.length} کانفیگ استخراج شد.`);
+  spinner.succeed(`مجموعاً ${rawConfigs.length} کانفیگ جدید استخراج شد.`);
 
-  // اولویت‌بندی بر اساس بهترین پروتکل‌ها برای ایران (REALITY > VLESS > Trojan > VMess)
-  const sorted = [
-    ...rawConfigs.filter(c => c.includes('security=reality')),
-    ...rawConfigs.filter(c => c.startsWith('vless://') && !c.includes('security=reality')),
-    ...rawConfigs.filter(c => c.startsWith('trojan://')),
-    ...rawConfigs.filter(c => c.startsWith('vmess://')),
-    ...rawConfigs.filter(c => c.startsWith('ss://'))
-  ];
+  // جداسازی فقط کانفیگ‌های نوین و با شانس بالای وصل (REALITY و VLESS)
+  const realityConfigs = rawConfigs.filter(c => c.includes('security=reality'));
+  const vlessConfigs = rawConfigs.filter(c => c.startsWith('vless://') && !c.includes('security=reality'));
+  const trojanConfigs = rawConfigs.filter(c => c.startsWith('trojan://'));
 
-  const targetCount = Math.min(sorted.length, 150);
+  // ترکیب با اولویت REALITY
+  const sorted = [...realityConfigs, ...vlessConfigs, ...trojanConfigs];
+  const targetCount = Math.min(sorted.length, 120);
   const finalConfigs = [];
 
   for (let i = 0; i < targetCount; i++) {
@@ -124,5 +124,5 @@ export async function runConfigWorkflow() {
   fs.writeFileSync(path.join(outputDir, 'sub.txt'), base64Sub);
   fs.writeFileSync(path.join(outputDir, 'sub_plain.txt'), plainText);
 
-  console.log(chalk.green(`\n✅ سابسکریپشن با ${finalConfigs.length} کانفیگ اولویت‌بندی‌شده ذخیره شد.`));
+  console.log(chalk.green(`\n✅ آپدیت انجام شد! ${finalConfigs.length} کانفیگ تازه ثبت شد.`));
 }
