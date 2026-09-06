@@ -19,5 +19,4 @@ program
     await runConfigWorkflow();
   });
 
-// این خط حتماً باید در انتهای فایل باشد تا آرگومان‌های ورودی پردازش شوند
 program.parse(process.argv);
