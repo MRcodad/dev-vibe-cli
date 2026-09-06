@@ -8,9 +8,7 @@ const FRESH_SOURCES = [
   'https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/reality/mix',
   'https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/vless/mix',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1.txt',
-  'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub2.txt',
-  'https://raw.githubusercontent.com/freefq/free/master/v2',
-  'https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray'
+  'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub2.txt'
 ];
 
 function parseConfigs(rawData) {
@@ -47,7 +45,7 @@ function renameConfig(config, index) {
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال جمع‌آوری تازه‌ترین کانفیگ‌ها...').start();
+  const spinner = ora('در حال استخراج کانفیگ‌ها...').start();
   let rawConfigs = [];
 
   for (const url of FRESH_SOURCES) {
@@ -58,31 +56,18 @@ export async function runConfigWorkflow() {
   }
 
   rawConfigs = [...new Set(rawConfigs)];
-  
-  if (rawConfigs.length === 0) {
-    spinner.fail('هیچ کانفیگی یافت نشد!');
-    return;
-  }
-
-  spinner.succeed(`مجموعاً ${rawConfigs.length} کانفیگ استخراج شد.`);
+  spinner.succeed(`تعداد ${rawConfigs.length} کانفیگ یافت شد.`);
 
   const finalConfigs = rawConfigs.slice(0, 80).map((cfg, idx) => renameConfig(cfg, idx));
-  
-  // ساخت رشته متنی بدون خط‌های خالی اضافی
-  const plainText = finalConfigs.join('\n').trim();
-  
-  // کدگذاری دقیق Base64
-  const base64Sub = Buffer.from(plainText, 'utf-8').toString('base64').trim();
+  const plainText = finalConfigs.join('\n');
+  const base64Sub = Buffer.from(plainText).toString('base64');
 
   const outputDir = path.join(process.cwd(), 'dist');
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  // ایجاد فایل .nojekyll
   fs.writeFileSync(path.join(outputDir, '.nojekyll'), '');
-
-  // ذخیره فایل‌های خروجی
   fs.writeFileSync(path.join(outputDir, 'sub.txt'), base64Sub, 'utf-8');
   fs.writeFileSync(path.join(outputDir, 'sub_plain.txt'), plainText, 'utf-8');
 
-  console.log(chalk.green(`\n✅ فایل‌های sub.txt و sub_plain.txt با موفقیت ساخته شدند.`));
+  console.log(chalk.green('\n✅ فایل‌های جدید با موفقیت ذخیره شدند.'));
 }
