@@ -5,8 +5,7 @@ allow-lan: true
 mode: rule
 log-level: info
 proxies:
-  # Base V2Ray configs provided as raw list
-  # Sub Link: https://raw.githubusercontent.com/MRcodad/dev-vibe-cli/main/dist/sub.txt
+  # Subscription endpoint provided dynamically
 proxy-groups:
   - name: ⚡ MRCODAD-AUTO
     type: select

@@ -1,0 +1,47 @@
+{
+  "log": {
+    "level": "info",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "mixed",
+      "tag": "mixed-in",
+      "listen": "127.0.0.1",
+      "listen_port": 2080
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "selector",
+      "tag": "⚡ MRCODAD-SELECT",
+      "outbounds": [
+        "auto-out"
+      ],
+      "default": "auto-out"
+    },
+    {
+      "type": "urltest",
+      "tag": "auto-out",
+      "outbounds": [],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "3m"
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    }
+  ],
+  "route": {
+    "auto_detect_interface": true,
+    "rules": [
+      {
+        "action": "sniff"
+      }
+    ]
+  }
+}
