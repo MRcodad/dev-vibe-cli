@@ -2,8 +2,8 @@ name: Auto Update Subscriptions
 
 on:
   schedule:
-    - cron: '0 */2 * * *' # هر ۲ ساعت یکبار
-  workflow_dispatch: # امکان اجرای دستی
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
 
 jobs:
   build-and-update:
@@ -16,10 +16,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run Config Finder
         run: node src/index.mjs fetch-configs
