@@ -46,7 +46,7 @@ function renameConfig(config, index) {
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال استخراج کانفیگ‌ها...').start();
+  const spinner = ora('در حال جمع‌آوری کانفیگ‌های v2rayNG...').start();
   let rawConfigs = [];
 
   for (const url of FRESH_SOURCES) {
@@ -57,21 +57,14 @@ export async function runConfigWorkflow() {
   }
 
   rawConfigs = [...new Set(rawConfigs)];
-  spinner.succeed(`تعداد ${rawConfigs.length} کانفیگ یافت شد.`);
+  spinner.succeed(`مجموعاً ${rawConfigs.length} کانفیگ استخراج شد.`);
 
   const finalConfigs = rawConfigs.slice(0, 80).map((cfg, idx) => renameConfig(cfg, idx));
   const plainText = finalConfigs.join('\n').trim();
   const base64Sub = Buffer.from(plainText, 'utf-8').toString('base64').trim();
 
-  // ذخیره مستقیم در ریشه پروژه (Root)
+  // فقط ذخیره فایل sub.txt در ریشه پروژه
   fs.writeFileSync(path.join(process.cwd(), 'sub.txt'), base64Sub, 'utf-8');
-  fs.writeFileSync(path.join(process.cwd(), 'sub_plain.txt'), plainText, 'utf-8');
 
-  // ذخیره درون پوشه dist جهت اطمینان
-  const distDir = path.join(process.cwd(), 'dist');
-  if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
-  fs.writeFileSync(path.join(distDir, 'sub.txt'), base64Sub, 'utf-8');
-  fs.writeFileSync(path.join(distDir, 'sub_plain.txt'), plainText, 'utf-8');
-
-  console.log(chalk.green('\n✅ فایل‌ها مستقیماً در ریشه پروژه ایجاد شدند.'));
+  console.log(chalk.green('\n✅ فایل sub.txt مخصوص v2rayNG با موفقیت ساخته شد.'));
 }
