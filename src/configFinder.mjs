@@ -8,7 +8,8 @@ const FRESH_SOURCES = [
   'https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/reality/mix',
   'https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/vless/mix',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1.txt',
-  'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub2.txt'
+  'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub2.txt',
+  'https://raw.githubusercontent.com/freefq/free/master/v2'
 ];
 
 function parseConfigs(rawData) {
@@ -59,15 +60,18 @@ export async function runConfigWorkflow() {
   spinner.succeed(`تعداد ${rawConfigs.length} کانفیگ یافت شد.`);
 
   const finalConfigs = rawConfigs.slice(0, 80).map((cfg, idx) => renameConfig(cfg, idx));
-  const plainText = finalConfigs.join('\n');
-  const base64Sub = Buffer.from(plainText).toString('base64');
+  const plainText = finalConfigs.join('\n').trim();
+  const base64Sub = Buffer.from(plainText, 'utf-8').toString('base64').trim();
 
-  const outputDir = path.join(process.cwd(), 'dist');
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+  // ذخیره مستقیم در ریشه پروژه (Root)
+  fs.writeFileSync(path.join(process.cwd(), 'sub.txt'), base64Sub, 'utf-8');
+  fs.writeFileSync(path.join(process.cwd(), 'sub_plain.txt'), plainText, 'utf-8');
 
-  fs.writeFileSync(path.join(outputDir, '.nojekyll'), '');
-  fs.writeFileSync(path.join(outputDir, 'sub.txt'), base64Sub, 'utf-8');
-  fs.writeFileSync(path.join(outputDir, 'sub_plain.txt'), plainText, 'utf-8');
+  // ذخیره درون پوشه dist جهت اطمینان
+  const distDir = path.join(process.cwd(), 'dist');
+  if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
+  fs.writeFileSync(path.join(distDir, 'sub.txt'), base64Sub, 'utf-8');
+  fs.writeFileSync(path.join(distDir, 'sub_plain.txt'), plainText, 'utf-8');
 
-  console.log(chalk.green('\n✅ فایل‌های جدید با موفقیت ذخیره شدند.'));
+  console.log(chalk.green('\n✅ فایل‌ها مستقیماً در ریشه پروژه ایجاد شدند.'));
 }
