@@ -11,23 +11,30 @@ const FRESH_SOURCES = [
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1.txt',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub2.txt',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub3.txt',
-  'https://raw.githubusercontent.com/mrvcoder/V2rayCollector/master/sub/mix.txt',
-  'https://raw.githubusercontent.com/freefq/free/master/v2'
+  'https://raw.githubusercontent.com/mrvcoder/V2rayCollector/master/sub/mix.txt'
 ];
 
 function parseConfigs(rawData) {
   if (!rawData || typeof rawData !== 'string') return [];
   let text = rawData;
-  
   if (!text.includes('vless://') && !text.includes('vmess://') && !text.includes('trojan://') && !text.includes('ss://')) {
     try {
       text = Buffer.from(rawData.trim(), 'base64').toString('utf-8');
     } catch {}
   }
-  
   const lines = text.split(/\r?\n/);
   const validProtocols = ['vless://', 'vmess://', 'trojan://', 'ss://'];
   return lines.map(l => l.trim()).filter(line => validProtocols.some(proto => line.startsWith(proto)));
+}
+
+// استخراج IP و Port جهت شناسایی سرورهای تکراری
+function getUniqueKey(config) {
+  try {
+    const clean = config.split('#')[0];
+    const match = clean.match(/@([^:]+):(\d+)/);
+    if (match) return `${match[1]}:${match[2]}`;
+  } catch {}
+  return config;
 }
 
 function renameConfig(config, index) {
@@ -52,42 +59,53 @@ function renameConfig(config, index) {
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال استخراج کانفیگ‌های زنده...').start();
+  const spinner = ora('در حال جمع‌آوری و فیلتر هوشمند کانفیگ‌ها...').start();
   let rawConfigs = [];
 
   for (const url of FRESH_SOURCES) {
     try {
       const res = await axios.get(url, {
         timeout: 8000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
       });
       const parsed = parseConfigs(res.data);
-      if (parsed.length > 0) {
-        rawConfigs.push(...parsed);
-      }
+      if (parsed.length > 0) rawConfigs.push(...parsed);
     } catch (e) {}
   }
 
-  rawConfigs = [...new Set(rawConfigs)];
-  
   if (rawConfigs.length === 0) {
-    spinner.fail('هیچ کانفیگی دریافت نشد!');
+    spinner.fail('هیچ کانفیگی یافت نشد!');
     return;
   }
 
-  spinner.succeed(`مجموعاً ${rawConfigs.length} کانفیگ استخراج شد.`);
+  // ۱. اولویت‌دهی مطلق به VLESS و REALITY
+  const vlessConfigs = rawConfigs.filter(c => c.startsWith('vless://'));
+  const otherConfigs = rawConfigs.filter(c => !c.startsWith('vless://'));
+  const sorted = [...vlessConfigs, ...otherConfigs];
 
-  // ۱. ساخت سرور راهنمای غیرفعال در بالاترین ردیف
+  // ۲. حذف تکراری‌ها بر اساس IP:Port
+  const uniqueConfigs = [];
+  const seenKeys = new Set();
+
+  for (const cfg of sorted) {
+    const key = getUniqueKey(cfg);
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      uniqueConfigs.push(cfg);
+    }
+  }
+
+  spinner.succeed(`تعداد ${uniqueConfigs.length} کانفیگ یکتا و اولویت‌بندی‌شده جدا شد.`);
+
+  // ۳. سرور راهنمای غیرفعال
   const infoNoticeName = encodeURIComponent('⚠️ قبل از اتصال لینک را آپدیت کنید');
   const dummyInfoServer = `vless://00000000-0000-0000-0000-000000000000@127.0.0.1:8080?type=tcp&security=none#${infoNoticeName}`;
 
-  // ۲. تغییر نام بقیه سرورها
-  const renamedConfigs = rawConfigs.slice(0, 100).map((cfg, idx) => renameConfig(cfg, idx));
-
-  // ۳. ترکیب سرور راهنما با سرورهای اصلی
-  const finalConfigs = [dummyInfoServer, ...renamedConfigs];
+  // ۴. انتخاب ۶۰ کانفیگ برتر VLESS
+  const finalConfigs = [
+    dummyInfoServer,
+    ...uniqueConfigs.slice(0, 60).map((cfg, idx) => renameConfig(cfg, idx))
+  ];
 
   const plainText = finalConfigs.join('\n').trim();
   const base64Sub = Buffer.from(plainText, 'utf-8').toString('base64').trim();
@@ -99,5 +117,5 @@ export async function runConfigWorkflow() {
   fs.writeFileSync(path.join(distDir, 'sub.txt'), base64Sub, 'utf-8');
   fs.writeFileSync(path.join(process.cwd(), 'sub.txt'), base64Sub, 'utf-8');
 
-  console.log(chalk.green(`\n✅ سرور راهنما اضافه شد و فایل‌ها به‌روزرسانی گردیدند.`));
+  console.log(chalk.green(`\n✅ ۶۰ کانفیگ VLESS یکتا و سالم ذخیره شد.`));
 }
