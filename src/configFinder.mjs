@@ -4,12 +4,16 @@ import axios from 'axios';
 import ora from 'ora';
 import chalk from 'chalk';
 
+// سورس‌های بسیار تازه و تست‌شده برای اپراتورهای ایران
 const FRESH_SOURCES = [
   'https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/reality/mix',
   'https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/vless/mix',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1.txt',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub2.txt',
-  'https://raw.githubusercontent.com/freefq/free/master/v2'
+  'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub3.txt',
+  'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub4.txt',
+  'https://raw.githubusercontent.com/v2rayng-configs/v2rayng-configs/main/All_Configs_Sub.txt',
+  'https://raw.githubusercontent.com/mft0/v2ray-collector/main/sub/reality.txt'
 ];
 
 function parseConfigs(rawData) {
@@ -46,25 +50,42 @@ function renameConfig(config, index) {
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال جمع‌آوری کانفیگ‌های v2rayNG...').start();
+  const spinner = ora('در حال جمع‌آوری کانفیگ‌های تازه و سالم...').start();
   let rawConfigs = [];
 
   for (const url of FRESH_SOURCES) {
     try {
-      const res = await axios.get(url, { timeout: 8000 });
+      const res = await axios.get(url, { timeout: 10000 });
       rawConfigs.push(...parseConfigs(res.data));
     } catch {}
   }
 
   rawConfigs = [...new Set(rawConfigs)];
+  
+  if (rawConfigs.length === 0) {
+    spinner.fail('هیچ کانفیگی یافت نشد!');
+    return;
+  }
+
   spinner.succeed(`مجموعاً ${rawConfigs.length} کانفیگ استخراج شد.`);
 
-  const finalConfigs = rawConfigs.slice(0, 80).map((cfg, idx) => renameConfig(cfg, idx));
+  // اولویت‌دهی به VLESS و REALITY
+  const sortedConfigs = rawConfigs.sort((a, b) => {
+    if (a.startsWith('vless://') && !b.startsWith('vless://')) return -1;
+    if (!a.startsWith('vless://') && b.startsWith('vless://')) return 1;
+    return 0;
+  });
+
+  const finalConfigs = sortedConfigs.slice(0, 100).map((cfg, idx) => renameConfig(cfg, idx));
   const plainText = finalConfigs.join('\n').trim();
   const base64Sub = Buffer.from(plainText, 'utf-8').toString('base64').trim();
 
-  // فقط ذخیره فایل sub.txt در ریشه پروژه
+  // ذخیره در هر دو مسیر جهت اطمینان کامل
+  const distDir = path.join(process.cwd(), 'dist');
+  if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
+
+  fs.writeFileSync(path.join(distDir, 'sub.txt'), base64Sub, 'utf-8');
   fs.writeFileSync(path.join(process.cwd(), 'sub.txt'), base64Sub, 'utf-8');
 
-  console.log(chalk.green('\n✅ فایل sub.txt مخصوص v2rayNG با موفقیت ساخته شد.'));
+  console.log(chalk.green(`\n✅ ${finalConfigs.length} کانفیگ تازه و اولویت‌بندی‌شده ذخیره شد.`));
 }
