@@ -5,18 +5,15 @@ import axios from 'axios';
 import ora from 'ora';
 import chalk from 'chalk';
 
-// ۱۰ سورس غنی برای دریافت بیش از ۱۰,۰۰۰ کانفیگ
+// سورس‌های بسیار معتبر با به‌روزرسانی زیر ۱۵ دقیقه
 const SOURCES = [
+  'https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/verified/configs.txt',
+  'https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/main/all_extracted_configs.txt',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/All_Configs_Sub.txt',
+  'https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Sub26.txt',
   'https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/normal/mix',
   'https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt',
-  'https://raw.githubusercontent.com/morteza45/v2ray-starter/main/config.txt',
-  'https://raw.githubusercontent.com/L12248/v2ray-share/main/v2ray',
-  'https://raw.githubusercontent.com/EbrahimAharizadeh/v2ray-subscription/main/sub/mix',
-  'https://raw.githubusercontent.com/soroushmirzaei/telegram-v2ray-configs/main/sub/mixed',
-  'https://raw.githubusercontent.com/ts-indexer/sub-collector/main/sub/mixed',
-  'https://raw.githubusercontent.com/mhsanaei/3x-ui/master/sub/mix',
-  'https://raw.githubusercontent.com/freefq/free/master/v2'
+  'https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/subscriptions/v2ray/super-sub.txt'
 ];
 
 // تغییر نام کانفیگ‌ها به برند MRCODAD
@@ -44,7 +41,6 @@ function renameConfig(config, index) {
   return config;
 }
 
-// تجزیه آدرس آی‌پی و پورت از انواع کانفیگ‌ها
 function parseConfigHostPort(config) {
   try {
     if (config.startsWith('vmess://')) {
@@ -64,8 +60,7 @@ function parseConfigHostPort(config) {
   }
 }
 
-// تست پینگ سریع TCP
-function testTcpConnection(host, port, timeout = 2000) {
+function testTcpConnection(host, port, timeout = 1800) {
   return new Promise((resolve) => {
     if (!host || !port || isNaN(port)) return resolve(false);
 
@@ -92,13 +87,22 @@ function testTcpConnection(host, port, timeout = 2000) {
 }
 
 function parseConfigs(rawData) {
-  const lines = rawData.split(/\r?\n/);
+  let text = rawData;
+  // بررسی اینکه آیا سورس خودش Base64 است یا خیر
+  if (!text.includes('vless://') && !text.includes('vmess://') && !text.includes('trojan://') && !text.includes('ss://')) {
+    try {
+      text = Buffer.from(rawData, 'base64').toString('utf-8');
+    } catch {
+      // ادامه با متن اولیه
+    }
+  }
+  const lines = text.split(/\r?\n/);
   const validProtocols = ['vless://', 'vmess://', 'trojan://', 'ss://'];
   return lines.filter(line => validProtocols.some(proto => line.startsWith(proto)));
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال دریافت کانفیگ‌ها از ۱۰ سورس عمده...').start();
+  const spinner = ora('در حال جمع‌آوری از سورس‌های زنده V2Ray...').start();
   let allConfigs = [];
 
   for (const url of SOURCES) {
@@ -107,7 +111,7 @@ export async function runConfigWorkflow() {
       const parsed = parseConfigs(res.data);
       allConfigs.push(...parsed);
     } catch (e) {
-      // ادامه با سورس بعدی در صورت خطا
+      // ادامه با سورس بعدی
     }
   }
 
@@ -118,34 +122,32 @@ export async function runConfigWorkflow() {
     return;
   }
 
-  spinner.succeed(`مجموعاً ${allConfigs.length} کانفیگ یکتا استخراج شد!`);
-  console.log(chalk.yellow('\nدر حال تست پینگ سریع TCP و تغییر نام به برند MRCODAD...'));
+  spinner.succeed(`تعداد ${allConfigs.length} کانفیگ استخراج شد.`);
+  console.log(chalk.yellow('\nدر حال غربالگری کانفیگ‌های پاسخ‌گو و اعمال نام MRCODAD...'));
 
   const activeConfigs = [];
-  const maxTestLimit = Math.min(allConfigs.length, 300); // تست پینگ ۳۰۰ کانفیگ اول برای سرعت بالای اکشن
+  const testLimit = Math.min(allConfigs.length, 500);
 
-  for (let i = 0; i < maxTestLimit; i++) {
+  for (let i = 0; i < testLimit; i++) {
     const rawConfig = allConfigs[i];
     const target = parseConfigHostPort(rawConfig);
 
     if (target) {
       const isAlive = await testTcpConnection(target.host, target.port);
       if (isAlive) {
-        // تغییر نام کانفیگ زنده به MRCODAD
         const renamedConfig = renameConfig(rawConfig, activeConfigs.length);
         activeConfigs.push(renamedConfig);
       }
     }
   }
 
-  console.log(chalk.green(`\nتعداد ${activeConfigs.length} کانفیگ سالم با نام MRCODAD آماده شد!`));
+  console.log(chalk.green(`\nتعداد ${activeConfigs.length} کانفیگ فعال و سالم آماده گردید.`));
 
   if (activeConfigs.length === 0) {
-    console.log(chalk.red('سرور زنده‌ای یافت نشد.'));
+    console.log(chalk.red('سرور فعالی در این لحظه یافت نشد.'));
     return;
   }
 
-  // رمزنگاری Base64 استاندارد
   const plainTextConfigs = activeConfigs.join('\n');
   const base64Sub = Buffer.from(plainTextConfigs).toString('base64');
 
