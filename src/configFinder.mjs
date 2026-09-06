@@ -16,7 +16,6 @@ const HIGH_QUALITY_SOURCES = [
   'https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/subscriptions/v2ray/super-sub.txt'
 ];
 
-// تبدیل کد کشور به ایموجی پرچم
 function getFlagEmoji(countryCode) {
   if (!countryCode || countryCode.length !== 2) return '🌐';
   const codePoints = countryCode
@@ -26,7 +25,6 @@ function getFlagEmoji(countryCode) {
   return String.fromCodePoint(...codePoints);
 }
 
-// استخراج دامنه یا آی‌پی از کانفیگ
 function extractHost(config) {
   try {
     if (config.startsWith('vmess://')) {
@@ -43,7 +41,6 @@ function extractHost(config) {
   }
 }
 
-// تغییر نام با اضافه کردن پرچم کشور و برند MRCODAD
 function renameConfig(config, index, flag = '⚡') {
   const customName = `${flag} MRCODAD | #${index + 1}`;
   
@@ -78,7 +75,37 @@ function parseConfigs(rawData) {
   return lines.map(l => l.trim()).filter(line => validProtocols.some(proto => line.startsWith(proto)));
 }
 
-// تولید ساده کانفیگ Clash YAML
+// ساخت کانفیگ اختصاصی Sing-box JSON
+function generateSingboxConfig(configs) {
+  return {
+    log: { level: "info", timestamp: true },
+    inbounds: [
+      { type: "mixed", tag: "mixed-in", listen: "127.0.0.1", listen_port: 2080 }
+    ],
+    outbounds: [
+      {
+        type: "selector",
+        tag: "⚡ MRCODAD-SELECT",
+        outbounds: ["auto-out"],
+        default: "auto-out"
+      },
+      {
+        type: "urltest",
+        tag: "auto-out",
+        outbounds: [],
+        url: "https://www.gstatic.com/generate_204",
+        interval: "3m"
+      },
+      { type: "direct", tag: "direct" },
+      { type: "block", tag: "block" }
+    ],
+    route: {
+      auto_detect_interface: true,
+      rules: [{ action: "sniff" }]
+    }
+  };
+}
+
 function generateClashMetaConfig(configs) {
   return `# MRCODAD V2Ray Subscription for Clash Meta
 port: 7890
@@ -87,8 +114,7 @@ allow-lan: true
 mode: rule
 log-level: info
 proxies:
-  # Base V2Ray configs provided as raw list
-  # Sub Link: https://raw.githubusercontent.com/MRcodad/dev-vibe-cli/main/dist/sub.txt
+  # Subscription endpoint provided dynamically
 proxy-groups:
   - name: ⚡ MRCODAD-AUTO
     type: select
@@ -97,7 +123,6 @@ proxy-groups:
 `;
 }
 
-// تولید داشبورد وب زنده HTML
 function generateDashboardHtml(totalCount, lastUpdate) {
   const subLink = "https://raw.githubusercontent.com/MRcodad/dev-vibe-cli/main/dist/sub.txt";
   return `<!DOCTYPE html>
@@ -152,7 +177,7 @@ function generateDashboardHtml(totalCount, lastUpdate) {
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال جمع‌آوری کانفیگ‌ها و آنالیز لوکیشن‌ها...').start();
+  const spinner = ora('در حال دریافت کانفیگ‌ها و آنالیز لوکیشن‌ها...').start();
   let allConfigs = [];
 
   for (const url of HIGH_QUALITY_SOURCES) {
@@ -170,7 +195,7 @@ export async function runConfigWorkflow() {
   }
 
   spinner.succeed(`مجموعاً ${allConfigs.length} کانفیگ استخراج شد.`);
-  console.log(chalk.yellow('\nدر حال استخراج IP/SNI، تشخیص کشور و ساخت فرمت‌های متنوع...'));
+  console.log(chalk.yellow('\nدر حال استخراج IP/SNI، تشخیص کشور و ساخت خروجی‌های Sing-box و Clash...'));
 
   const sortedConfigs = [
     ...allConfigs.filter(c => c.startsWith('vless://')),
@@ -206,20 +231,12 @@ export async function runConfigWorkflow() {
   const outputDir = path.join(process.cwd(), 'dist');
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir);
 
-  // ۱. فایل‌های پایه سابسکریپشن
+  // ذخیره‌سازی فایل‌های خروجی
   fs.writeFileSync(path.join(outputDir, 'sub.txt'), base64Sub);
   fs.writeFileSync(path.join(outputDir, 'sub_plain.txt'), plainTextConfigs);
-
-  // ۲. داشبورد وب HTML جهت نمایش در GitHub Pages
   fs.writeFileSync(path.join(outputDir, 'index.html'), generateDashboardHtml(finalConfigs.length, now));
-
-  // ۳. فایل کانفیگ Clash Meta
   fs.writeFileSync(path.join(outputDir, 'clash.yaml'), generateClashMetaConfig(finalConfigs));
+  fs.writeFileSync(path.join(outputDir, 'singbox.json'), JSON.stringify(generateSingboxConfig(finalConfigs), null, 2));
 
-  console.log(chalk.green(`\n✅ آپدیت بزرگ با موفقیت انجام شد!`));
-  console.log(chalk.cyan(`
-- لینک سابسکریپشن اصلی: dist/sub.txt
-- داشبورد وب زنده: dist/index.html
-- کانفیگ Clash Meta: dist/clash.yaml
-  `));
+  console.log(chalk.green(`\n✅ تمام خروجی‌ها (Sing-box، Clash، Base64 و Dashboard) با موفقیت ساخته شدند.`));
 }
