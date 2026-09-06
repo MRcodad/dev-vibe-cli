@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import net from 'net';
 import axios from 'axios';
 import ora from 'ora';
 import chalk from 'chalk';
@@ -10,12 +11,53 @@ const SOURCES = [
   'https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt'
 ];
 
-// لیست پشتیبان برای اطمینان از عملکرد خروجی
-const FALLBACK_CONFIGS = [
-  'vless://00000000-0000-0000-0000-000000000000@1.1.1.1:443?type=ws&security=tls#Sample_VLESS_Cloudflare',
-  'vmess://ew0KICAidiI6ICIyIiwNCiAgICJwcyI6ICJTYW1wbGVfVk1lc3MiLA0KICAgImFkZCI6ICI4LjguOC44IiwNCiAgICJwb3J0IjogNDQzLA0KICAgImlkIjogIjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCIsDQogICAiYWlkIjogMCwNCiAgICJuZXQiOiAic3J0cCIsDQogICAidHlwZSI6ICJub25lIiwNCiAgICJob3N0IjogIiIsDQogICAicGF0aCI6ICIiLA0KICAgInRscyI6ICJ0bHMiDQp9',
-  'trojan://password@1.0.0.1:443?security=tls#Sample_Trojan'
-];
+// تجزیه آدرس آی‌پی و پورت از لینک‌های vless / vmess / trojan / ss
+function parseConfigHostPort(config) {
+  try {
+    if (config.startsWith('vmess://')) {
+      const base64Str = config.replace('vmess://', '');
+      const jsonStr = Buffer.from(base64Str, 'base64').toString('utf-8');
+      const parsed = JSON.parse(jsonStr);
+      return { host: parsed.add, port: parseInt(parsed.port, 10) };
+    } else {
+      // برای vless, trojan, ss
+      const urlPart = config.split('@')[1];
+      if (!urlPart) return null;
+      const hostPortStr = urlPart.split('?')[0].split('#')[0];
+      const [host, port] = hostPortStr.split(':');
+      return { host, port: parseInt(port, 10) };
+    }
+  } catch {
+    return null;
+  }
+}
+
+// تست پینگ واقعی TCP به آی‌پی و پورت سرور
+function testTcpConnection(host, port, timeout = 2500) {
+  return new Promise((resolve) => {
+    if (!host || !port || isNaN(port)) return resolve(false);
+
+    const socket = new net.Socket();
+    socket.setTimeout(timeout);
+
+    socket.on('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+
+    socket.on('timeout', () => {
+      socket.destroy();
+      resolve(false);
+    });
+
+    socket.on('error', () => {
+      socket.destroy();
+      resolve(false);
+    });
+
+    socket.connect(port, host);
+  });
+}
 
 function parseConfigs(rawData) {
   const lines = rawData.split(/\r?\n/);
@@ -23,78 +65,61 @@ function parseConfigs(rawData) {
   return lines.filter(line => validProtocols.some(proto => line.startsWith(proto)));
 }
 
-async function testConfigConnection(config) {
-  try {
-    const start = Date.now();
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 200 + 50));
-    const latency = Date.now() - start;
-    return { success: latency < 350, latency };
-  } catch {
-    return { success: false, latency: Infinity };
-  }
-}
-
-async function testConfigSpeed(config) {
-  try {
-    const speedScore = Math.floor(Math.random() * 100);
-    return speedScore > 20;
-  } catch {
-    return false;
-  }
-}
-
-export async function runConfigWorkflow(isAuto = false) {
-  const spinner = ora('در حال دریافت کانفیگ‌ها از سورس‌های آنلاین...').start();
+export async function runConfigWorkflow() {
+  const spinner = ora('در حال دریافت آخرین کانفیگ‌های زنده...').start();
   let allConfigs = [];
 
   for (const url of SOURCES) {
     try {
-      const res = await axios.get(url, { timeout: 7000 });
+      const res = await axios.get(url, { timeout: 8000 });
       const parsed = parseConfigs(res.data);
       allConfigs.push(...parsed);
     } catch (e) {
-      // ادامه به سورس بعدی در صورت محدودیت شبکه
+      // ادامه با سورس بعدی
     }
   }
 
   allConfigs = [...new Set(allConfigs)];
 
   if (allConfigs.length === 0) {
-    spinner.warn('سورس‌های آنلاین در دسترس نبودند؛ استفاده از لیست پشتیبان (Fallback)...');
-    allConfigs = FALLBACK_CONFIGS;
-  } else {
-    spinner.succeed(`تعداد ${allConfigs.length} کانفیگ دریافت شد.`);
+    spinner.fail('هیچ کانفیگی از سورس‌ها دریافت نشد.');
+    return;
   }
 
-  console.log(chalk.yellow('\nشروع تست ۳ مرحله‌ای...'));
+  spinner.succeed(`تعداد ${allConfigs.length} کانفیگ دریافت شد.`);
+  console.log(chalk.yellow('\nشروع تست پینگ واقعی TCP روی سرورها...'));
 
-  const testedConfigs = [];
-  const limit = Math.min(allConfigs.length, 30);
+  const activeConfigs = [];
+  const limit = Math.min(allConfigs.length, 100); // تست ۱۰۰ کانفیگ اول
 
   for (let i = 0; i < limit; i++) {
     const config = allConfigs[i];
-    const conn = await testConfigConnection(config);
-    if (!conn.success) continue;
+    const target = parseConfigHostPort(config);
 
-    const isFast = await testConfigSpeed(config);
-    if (isFast) {
-      testedConfigs.push(config);
+    if (target) {
+      const isAlive = await testTcpConnection(target.host, target.port);
+      if (isAlive) {
+        activeConfigs.push(config);
+      }
     }
   }
 
-  console.log(chalk.green(`\nتعداد ${testedConfigs.length} کانفیگ با موفقیت تایید شدند!`));
+  console.log(chalk.green(`\nتعداد ${activeConfigs.length} سرور زنده و پاسخ‌گو تایید شدند!`));
 
-  const subContent = Buffer.from(testedConfigs.join('\n')).toString('base64');
+  if (activeConfigs.length === 0) {
+    console.log(chalk.red('هیچ سرور زنده‌ای پیدا نشد. دوباره تلاش کنید.'));
+    return;
+  }
+
+  // ساخت لینک سابسکریپشن واقعی استاندارد (Base64)
+  const plainTextConfigs = activeConfigs.join('\n');
+  const base64Sub = Buffer.from(plainTextConfigs).toString('base64');
+
   const outputDir = path.join(process.cwd(), 'dist');
-
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir);
 
-  fs.writeFileSync(path.join(outputDir, 'sub.txt'), subContent);
-  fs.writeFileSync(path.join(outputDir, 'sub_plain.txt'), testedConfigs.join('\n'));
+  fs.writeFileSync(path.join(outputDir, 'sub.txt'), base64Sub);
+  fs.writeFileSync(path.join(outputDir, 'sub_plain.txt'), plainTextConfigs);
 
-  console.log(chalk.cyan(`\nلینک ساب در مسیر dist/sub.txt ذخیره شد.`));
-}
-
-if (process.argv.includes('--auto-update')) {
-  runConfigWorkflow(true);
+  console.log(chalk.cyan(`\nلینک سابسکریپشن واقعی در dist/sub.txt ذخیره شد.`));
 }
