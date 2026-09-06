@@ -10,8 +10,7 @@ const FRESH_SOURCES = [
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1.txt',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub2.txt',
   'https://raw.githubusercontent.com/freefq/free/master/v2',
-  'https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray',
-  'https://raw.githubusercontent.com/erfan-f/v2ray-collector/main/sub/reality.txt'
+  'https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray'
 ];
 
 function parseConfigs(rawData) {
@@ -48,7 +47,7 @@ function renameConfig(config, index) {
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال جمع‌آوری تازه ترین کانفیگ‌ها...').start();
+  const spinner = ora('در حال جمع‌آوری تازه‌ترین کانفیگ‌ها...').start();
   let rawConfigs = [];
 
   for (const url of FRESH_SOURCES) {
@@ -59,25 +58,31 @@ export async function runConfigWorkflow() {
   }
 
   rawConfigs = [...new Set(rawConfigs)];
-  spinner.succeed(`مجموعاً ${rawConfigs.length} کانفیگ جدید استخراج شد.`);
+  
+  if (rawConfigs.length === 0) {
+    spinner.fail('هیچ کانفیگی یافت نشد!');
+    return;
+  }
 
-  const finalConfigs = rawConfigs.slice(0, 100).map((cfg, idx) => renameConfig(cfg, idx));
-  const plainText = finalConfigs.join('\n');
-  const base64Sub = Buffer.from(plainText).toString('base64');
+  spinner.succeed(`مجموعاً ${rawConfigs.length} کانفیگ استخراج شد.`);
+
+  const finalConfigs = rawConfigs.slice(0, 80).map((cfg, idx) => renameConfig(cfg, idx));
+  
+  // ساخت رشته متنی بدون خط‌های خالی اضافی
+  const plainText = finalConfigs.join('\n').trim();
+  
+  // کدگذاری دقیق Base64
+  const base64Sub = Buffer.from(plainText, 'utf-8').toString('base64').trim();
 
   const outputDir = path.join(process.cwd(), 'dist');
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  // جلوگیری از بلاک شدن فایل‌ها توسط GitHub Pages / Jekyll
+  // ایجاد فایل .nojekyll
   fs.writeFileSync(path.join(outputDir, '.nojekyll'), '');
 
-  // ذخیره خروجی‌ها
-  fs.writeFileSync(path.join(outputDir, 'sub.txt'), base64Sub);
-  fs.writeFileSync(path.join(outputDir, 'sub_plain.txt'), plainText);
+  // ذخیره فایل‌های خروجی
+  fs.writeFileSync(path.join(outputDir, 'sub.txt'), base64Sub, 'utf-8');
+  fs.writeFileSync(path.join(outputDir, 'sub_plain.txt'), plainText, 'utf-8');
 
-  // همچنین ذخیره فایل‌ها در ریشه جهت دسترسی مستقیم و آسان بدون مسیر dist
-  fs.writeFileSync(path.join(process.cwd(), 'sub.txt'), base64Sub);
-  fs.writeFileSync(path.join(process.cwd(), 'sub_plain.txt'), plainText);
-
-  console.log(chalk.green(`\n✅ آپدیت انجام شد! ${finalConfigs.length} کانفیگ تازه ثبت شد.`));
+  console.log(chalk.green(`\n✅ فایل‌های sub.txt و sub_plain.txt با موفقیت ساخته شدند.`));
 }
