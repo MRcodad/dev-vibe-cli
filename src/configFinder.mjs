@@ -43,7 +43,6 @@ function extractHost(config) {
 
 function renameConfig(config, index, flag = '⚡') {
   const customName = `${flag} MRCODAD | #${index + 1}`;
-  
   try {
     if (config.startsWith('vmess://')) {
       const base64Str = config.replace('vmess://', '').trim();
@@ -75,168 +74,55 @@ function parseConfigs(rawData) {
   return lines.map(l => l.trim()).filter(line => validProtocols.some(proto => line.startsWith(proto)));
 }
 
-// ساخت کانفیگ اختصاصی Sing-box JSON
-function generateSingboxConfig(configs) {
-  return {
-    log: { level: "info", timestamp: true },
-    inbounds: [
-      { type: "mixed", tag: "mixed-in", listen: "127.0.0.1", listen_port: 2080 }
-    ],
-    outbounds: [
-      {
-        type: "selector",
-        tag: "⚡ MRCODAD-SELECT",
-        outbounds: ["auto-out"],
-        default: "auto-out"
-      },
-      {
-        type: "urltest",
-        tag: "auto-out",
-        outbounds: [],
-        url: "https://www.gstatic.com/generate_204",
-        interval: "3m"
-      },
-      { type: "direct", tag: "direct" },
-      { type: "block", tag: "block" }
-    ],
-    route: {
-      auto_detect_interface: true,
-      rules: [{ action: "sniff" }]
-    }
-  };
-}
-
-function generateClashMetaConfig(configs) {
-  return `# MRCODAD V2Ray Subscription for Clash Meta
-port: 7890
-socks-port: 7891
-allow-lan: true
-mode: rule
-log-level: info
-proxies:
-  # Subscription endpoint provided dynamically
-proxy-groups:
-  - name: ⚡ MRCODAD-AUTO
-    type: select
-    proxies:
-      - DIRECT
-`;
-}
-
-function generateDashboardHtml(totalCount, lastUpdate) {
-  const subLink = "https://raw.githubusercontent.com/MRcodad/dev-vibe-cli/main/dist/sub.txt";
-  return `<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MRCODAD V2Ray Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-</head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
-  <div class="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl text-center">
-    <div class="inline-block bg-red-500/10 text-red-400 p-3 rounded-full mb-4 font-bold text-2xl">⚡</div>
-    <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-400 mb-2">
-      MRCODAD Subscription Dashboard
-    </h1>
-    <p class="text-slate-400 text-sm mb-6">سابسکریپشن هوشمند و خودکار V2Ray با به‌روزرسانی ۲ ساعته</p>
-
-    <div class="grid grid-cols-2 gap-4 mb-6">
-      <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
-        <span class="text-xs text-slate-400 block mb-1">تعداد کانفیگ‌های زنده</span>
-        <span class="text-2xl font-bold text-emerald-400">${totalCount}</span>
-      </div>
-      <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
-        <span class="text-xs text-slate-400 block mb-1">آخرین به‌روزرسانی</span>
-        <span class="text-xs font-semibold text-orange-300 block mt-2">${lastUpdate}</span>
-      </div>
-    </div>
-
-    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between mb-6">
-      <input type="text" id="subUrl" readonly value="${subLink}" class="bg-transparent text-xs text-slate-300 w-full outline-none px-2 text-left dir-ltr">
-      <button onclick="copySub()" class="bg-red-600 hover:bg-red-500 text-white text-xs px-4 py-2 rounded-lg font-medium transition ml-2">کپی</button>
-    </div>
-
-    <div class="flex justify-center mb-4">
-      <canvas id="qrcode" class="rounded-xl border border-slate-700 p-2 bg-white"></canvas>
-    </div>
-    <p class="text-xs text-slate-500">برای اتصال سریع، کد فوق را در V2RayNG یا MahsaNG اسکن کنید.</p>
-  </div>
-
-  <script>
-    QRCode.toCanvas(document.getElementById('qrcode'), "${subLink}", { width: 160 });
-    function copySub() {
-      const copyText = document.getElementById("subUrl");
-      navigator.clipboard.writeText(copyText.value);
-      alert("لینک سابسکریپشن کپی شد!");
-    }
-  </script>
-</body>
-</html>`;
-}
-
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال دریافت کانفیگ‌ها و آنالیز لوکیشن‌ها...').start();
-  let allConfigs = [];
+  const spinner = ora('در حال استخراج و ساخت سابسکریپشن بدون ریزش...').start();
+  let rawConfigs = [];
 
   for (const url of HIGH_QUALITY_SOURCES) {
     try {
       const res = await axios.get(url, { timeout: 8000 });
-      allConfigs.push(...parseConfigs(res.data));
+      rawConfigs.push(...parseConfigs(res.data));
     } catch {}
   }
 
-  allConfigs = [...new Set(allConfigs)];
+  rawConfigs = [...new Set(rawConfigs)];
+  spinner.succeed(`مجموعاً ${rawConfigs.length} کانفیگ استخراج شد.`);
 
-  if (allConfigs.length === 0) {
-    spinner.fail('هیچ کانفیگی یافت نشد.');
-    return;
-  }
-
-  spinner.succeed(`مجموعاً ${allConfigs.length} کانفیگ استخراج شد.`);
-  console.log(chalk.yellow('\nدر حال استخراج IP/SNI، تشخیص کشور و ساخت خروجی‌های Sing-box و Clash...'));
-
-  const sortedConfigs = [
-    ...allConfigs.filter(c => c.startsWith('vless://')),
-    ...allConfigs.filter(c => c.startsWith('trojan://')),
-    ...allConfigs.filter(c => c.startsWith('vmess://')),
-    ...allConfigs.filter(c => c.startsWith('ss://'))
+  // اولویت‌بندی بر اساس بهترین پروتکل‌ها برای ایران (REALITY > VLESS > Trojan > VMess)
+  const sorted = [
+    ...rawConfigs.filter(c => c.includes('security=reality')),
+    ...rawConfigs.filter(c => c.startsWith('vless://') && !c.includes('security=reality')),
+    ...rawConfigs.filter(c => c.startsWith('trojan://')),
+    ...rawConfigs.filter(c => c.startsWith('vmess://')),
+    ...rawConfigs.filter(c => c.startsWith('ss://'))
   ];
 
+  const targetCount = Math.min(sorted.length, 150);
   const finalConfigs = [];
-  const targetCount = Math.min(sortedConfigs.length, 250);
 
   for (let i = 0; i < targetCount; i++) {
-    const raw = sortedConfigs[i];
+    const raw = sorted[i];
     const host = extractHost(raw);
     let flag = '⚡';
 
     if (host) {
       try {
-        const geoRes = await axios.get(`http://ip-api.com/json/${host}?fields=countryCode`, { timeout: 1200 });
+        const geoRes = await axios.get(`http://ip-api.com/json/${host}?fields=countryCode`, { timeout: 1000 });
         if (geoRes.data && geoRes.data.countryCode) {
           flag = getFlagEmoji(geoRes.data.countryCode);
         }
       } catch {}
     }
-
     finalConfigs.push(renameConfig(raw, finalConfigs.length, flag));
   }
 
-  const plainTextConfigs = finalConfigs.join('\n');
-  const base64Sub = Buffer.from(plainTextConfigs).toString('base64');
-  const now = new Date().toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' });
-
+  const plainText = finalConfigs.join('\n');
+  const base64Sub = Buffer.from(plainText).toString('base64');
   const outputDir = path.join(process.cwd(), 'dist');
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir);
 
-  // ذخیره‌سازی فایل‌های خروجی
   fs.writeFileSync(path.join(outputDir, 'sub.txt'), base64Sub);
-  fs.writeFileSync(path.join(outputDir, 'sub_plain.txt'), plainTextConfigs);
-  fs.writeFileSync(path.join(outputDir, 'index.html'), generateDashboardHtml(finalConfigs.length, now));
-  fs.writeFileSync(path.join(outputDir, 'clash.yaml'), generateClashMetaConfig(finalConfigs));
-  fs.writeFileSync(path.join(outputDir, 'singbox.json'), JSON.stringify(generateSingboxConfig(finalConfigs), null, 2));
+  fs.writeFileSync(path.join(outputDir, 'sub_plain.txt'), plainText);
 
-  console.log(chalk.green(`\n✅ تمام خروجی‌ها (Sing-box، Clash، Base64 و Dashboard) با موفقیت ساخته شدند.`));
+  console.log(chalk.green(`\n✅ سابسکریپشن با ${finalConfigs.length} کانفیگ اولویت‌بندی‌شده ذخیره شد.`));
 }
