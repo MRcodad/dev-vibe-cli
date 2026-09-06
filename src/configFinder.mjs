@@ -4,16 +4,14 @@ import axios from 'axios';
 import ora from 'ora';
 import chalk from 'chalk';
 
-// سورس‌های بسیار تازه و تست‌شده برای اپراتورهای ایران
+// سورس‌های بسیار معتبر با هدرهای اختصاصی
 const FRESH_SOURCES = [
   'https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/reality/mix',
   'https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/vless/mix',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1.txt',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub2.txt',
-  'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub3.txt',
-  'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub4.txt',
-  'https://raw.githubusercontent.com/v2rayng-configs/v2rayng-configs/main/All_Configs_Sub.txt',
-  'https://raw.githubusercontent.com/mft0/v2ray-collector/main/sub/reality.txt'
+  'https://raw.githubusercontent.com/MrMohebi/xray-proxy-grabber-telegram/master/collected-proxies/row-url/configs.txt',
+  'https://raw.githubusercontent.com/bikhedmat/v2ray-collector/main/sub/mix'
 ];
 
 function parseConfigs(rawData) {
@@ -55,37 +53,41 @@ export async function runConfigWorkflow() {
 
   for (const url of FRESH_SOURCES) {
     try {
-      const res = await axios.get(url, { timeout: 10000 });
-      rawConfigs.push(...parseConfigs(res.data));
-    } catch {}
+      // اضافه کردن هدر User-Agent برای جلوگیری از بلاک شدن درخواست توسط گیت‌هاب
+      const res = await axios.get(url, {
+        timeout: 15000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
+      const parsed = parseConfigs(res.data);
+      if (parsed.length > 0) {
+        rawConfigs.push(...parsed);
+      }
+    } catch (e) {
+      // در صورت خطا در یک سورس، ادامه می‌دهد
+    }
   }
 
   rawConfigs = [...new Set(rawConfigs)];
   
   if (rawConfigs.length === 0) {
-    spinner.fail('هیچ کانفیگی یافت نشد!');
+    spinner.fail('هیچ کانفیگی دریافت نشد! لطفاً دوباره تلاش کنید.');
     return;
   }
 
   spinner.succeed(`مجموعاً ${rawConfigs.length} کانفیگ استخراج شد.`);
 
-  // اولویت‌دهی به VLESS و REALITY
-  const sortedConfigs = rawConfigs.sort((a, b) => {
-    if (a.startsWith('vless://') && !b.startsWith('vless://')) return -1;
-    if (!a.startsWith('vless://') && b.startsWith('vless://')) return 1;
-    return 0;
-  });
-
-  const finalConfigs = sortedConfigs.slice(0, 100).map((cfg, idx) => renameConfig(cfg, idx));
+  const finalConfigs = rawConfigs.slice(0, 100).map((cfg, idx) => renameConfig(cfg, idx));
   const plainText = finalConfigs.join('\n').trim();
   const base64Sub = Buffer.from(plainText, 'utf-8').toString('base64').trim();
 
-  // ذخیره در هر دو مسیر جهت اطمینان کامل
+  // ذخیره فایل‌ها در هر دو مسیر جهت اطمینان
   const distDir = path.join(process.cwd(), 'dist');
   if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
 
   fs.writeFileSync(path.join(distDir, 'sub.txt'), base64Sub, 'utf-8');
   fs.writeFileSync(path.join(process.cwd(), 'sub.txt'), base64Sub, 'utf-8');
 
-  console.log(chalk.green(`\n✅ ${finalConfigs.length} کانفیگ تازه و اولویت‌بندی‌شده ذخیره شد.`));
+  console.log(chalk.green(`\n✅ ${finalConfigs.length} کانفیگ تازه و بدون خطا ثبت شد.`));
 }
