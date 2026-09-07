@@ -16,6 +16,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -28,22 +31,36 @@ jobs:
       - name: Run Config Tester
         run: node src/index.mjs test-configs --fast
 
-      - name: Commit updated configs
+      - name: Debug - Show files
+        run: |
+          echo "=== dist/ contents ==="
+          ls -la dist/
+          echo "=== sub.txt first 100 chars ==="
+          head -c 100 dist/sub.txt || echo "sub.txt not found"
+
+      - name: Commit and push updated configs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add dist/
-          git diff --staged --quiet || git commit -m "chore: auto-update subscription $(date -u '+%Y-%m-%d %H:%M') UTC"
-          git push
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: auto-update subscription $(date -u '+%Y-%m-%d %H:%M') UTC"
+            git push origin main
+          fi
 
       - name: Setup Pages
+        if: success()
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
+        if: success()
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
 
       - name: Deploy to GitHub Pages
+        if: success()
         id: deployment
         uses: actions/deploy-pages@v4
