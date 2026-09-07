@@ -21,10 +21,6 @@
 | اپلیکیشن / نرم‌افزار | نوع فرمت | لینک سابسکریپشن مستقیم |
 | :--- | :--- | :--- |
 | **V2RayNG / MahsaNG / Streisand** | Base64 | `https://raw.githubusercontent.com/MRcodad/dev-vibe-cli/main/dist/sub.txt` |
-| **Sing-box** | JSON | `https://raw.githubusercontent.com/MRcodad/dev-vibe-cli/main/dist/singbox.json` |
-| **Clash Meta / Stash** | YAML | `https://raw.githubusercontent.com/MRcodad/dev-vibe-cli/main/dist/clash.yaml` |
-| **متن معمولی (Plain Text)** | Text | `https://raw.githubusercontent.com/MRcodad/dev-vibe-cli/main/dist/sub_plain.txt` |
-
 ---
 
 ## 📖 راهنمای استفاده سریع
