@@ -4,7 +4,6 @@ import axios from 'axios';
 import ora from 'ora';
 import chalk from 'chalk';
 
-// استفاده انحصاری از دو سورس مورد نظر
 const FRESH_SOURCES = [
   'https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector_Py/main/sub/Mix/mix.txt',
   'https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/mixed_iran.txt'
@@ -20,7 +19,9 @@ function parseConfigs(rawData) {
   }
   const lines = text.split(/\r?\n/);
   const validProtocols = ['vless://', 'vmess://', 'trojan://', 'ss://'];
-  return lines.map(l => l.trim()).filter(line => validProtocols.some(proto => line.startsWith(proto)));
+  return lines
+    .map(l => l.trim())
+    .filter(line => validProtocols.some(proto => line.startsWith(proto)));
 }
 
 function getUniqueKey(config) {
@@ -54,7 +55,7 @@ function renameConfig(config, index) {
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال دریافت کانفیگ‌ها انحصاراً از ۲ سورس تعیین‌شده...').start();
+  const spinner = ora('در حال دریافت و پردازش دقیق کانفیگ‌ها...').start();
   let rawConfigs = [];
 
   for (const url of FRESH_SOURCES) {
@@ -73,12 +74,12 @@ export async function runConfigWorkflow() {
     return;
   }
 
-  // ۱. اولویت‌دهی به کانفیگ‌های VLESS و REALITY
+  // ۱. اولویت‌دهی به VLESS
   const vlessConfigs = rawConfigs.filter(c => c.startsWith('vless://'));
   const otherConfigs = rawConfigs.filter(c => !c.startsWith('vless://'));
   const sorted = [...vlessConfigs, ...otherConfigs];
 
-  // ۲. حذف تکراری‌ها بر اساس IP:Port
+  // ۲. حذف تکراری‌ها
   const uniqueConfigs = [];
   const seenKeys = new Set();
 
@@ -90,18 +91,18 @@ export async function runConfigWorkflow() {
     }
   }
 
-  spinner.succeed(`تعداد ${uniqueConfigs.length} کانفیگ از این ۲ سورس استخراج شد.`);
+  spinner.succeed(`تعداد ${rawConfigs.length} کانفیگ ورودی به ${uniqueConfigs.length} کانفیگ یکتا تبدیل شد.`);
 
   // ۳. سرور راهنمای غیرفعال
   const infoNoticeName = encodeURIComponent('⚠️ قبل از اتصال لینک را آپدیت کنید');
   const dummyInfoServer = `vless://00000000-0000-0000-0000-000000000000@127.0.0.1:8080?type=tcp&security=none#${infoNoticeName}`;
 
-  const finalConfigs = [
-    dummyInfoServer,
-    ...uniqueConfigs.slice(0, 250).map((cfg, idx) => renameConfig(cfg, idx))
-  ];
+  // انتخاب تا ۳۰۰ کانفیگ یکتا و سالم
+  const renamedList = uniqueConfigs.slice(0, 300).map((cfg, idx) => renameConfig(cfg, idx));
+  const finalConfigs = [dummyInfoServer, ...renamedList];
 
-  const plainText = finalConfigs.join('\n').trim();
+  // پاک‌سازی خطوط متنی با فرمت استاندارد Unix (LF)
+  const plainText = finalConfigs.filter(Boolean).join('\n').trim();
   const base64Sub = Buffer.from(plainText, 'utf-8').toString('base64').trim();
 
   const distDir = path.join(process.cwd(), 'dist');
@@ -111,5 +112,5 @@ export async function runConfigWorkflow() {
   fs.writeFileSync(path.join(distDir, 'sub.txt'), base64Sub, 'utf-8');
   fs.writeFileSync(path.join(process.cwd(), 'sub.txt'), base64Sub, 'utf-8');
 
-  console.log(chalk.green(`\n✅ فایل sub.txt فقط با کانفیگ‌های این ۲ سورس به‌روزرسانی شد.`));
+  console.log(chalk.green(`\n✅ فایل sub.txt با موفقیت و فرمت کاملاً استاندارد با ${finalConfigs.length} کانفیگ بازنویسی شد.`));
 }
