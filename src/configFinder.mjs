@@ -34,7 +34,7 @@ function getUniqueKey(config) {
 }
 
 function renameConfig(config, index) {
-  const customName = `⚡ MRCODAD | #${index + 1}`;
+  const customName = `MRCODAD | #${index + 1}`;
   try {
     if (config.startsWith('vmess://')) {
       const base64Str = config.replace('vmess://', '').trim();
@@ -44,9 +44,9 @@ function renameConfig(config, index) {
     } else if (config.startsWith('vless://') || config.startsWith('trojan://') || config.startsWith('ss://')) {
       const hashIndex = config.indexOf('#');
       if (hashIndex !== -1) {
-        return `${config.substring(0, hashIndex)}#${encodeURIComponent(customName)}`;
+        return `${config.substring(0, hashIndex)}#${customName}`;
       }
-      return `${config}#${encodeURIComponent(customName)}`;
+      return `${config}#${customName}`;
     }
   } catch {
     return config;
@@ -55,7 +55,7 @@ function renameConfig(config, index) {
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال دریافت و پردازش دقیق کانفیگ‌ها...').start();
+  const spinner = ora('در حال استخراج و استانداردسازی کانفیگ‌ها...').start();
   let rawConfigs = [];
 
   for (const url of FRESH_SOURCES) {
@@ -70,11 +70,11 @@ export async function runConfigWorkflow() {
   }
 
   if (rawConfigs.length === 0) {
-    spinner.fail('هیچ کانفیگی دریافت نشد!');
+    spinner.fail('هیچ کانفیگی یافت نشد!');
     return;
   }
 
-  // ۱. اولویت‌دهی به VLESS
+  // ۱. اولویت با VLESS
   const vlessConfigs = rawConfigs.filter(c => c.startsWith('vless://'));
   const otherConfigs = rawConfigs.filter(c => !c.startsWith('vless://'));
   const sorted = [...vlessConfigs, ...otherConfigs];
@@ -91,17 +91,15 @@ export async function runConfigWorkflow() {
     }
   }
 
-  spinner.succeed(`تعداد ${rawConfigs.length} کانفیگ ورودی به ${uniqueConfigs.length} کانفیگ یکتا تبدیل شد.`);
+  spinner.succeed(`تعداد ${uniqueConfigs.length} کانفیگ سالم و یکتا پردازش شد.`);
 
-  // ۳. سرور راهنمای غیرفعال
-  const infoNoticeName = encodeURIComponent('⚠️ قبل از اتصال لینک را آپدیت کنید');
-  const dummyInfoServer = `vless://00000000-0000-0000-0000-000000000000@127.0.0.1:8080?type=tcp&security=none#${infoNoticeName}`;
+  // ۳. سرور راهنما (بدون کاراکترهای ناسازگار)
+  const dummyInfoServer = `vless://00000000-0000-0000-0000-000000000000@127.0.0.1:8080?type=tcp&security=none#PLEASE UPDATE SUB LINK`;
 
-  // انتخاب تا ۳۰۰ کانفیگ یکتا و سالم
-  const renamedList = uniqueConfigs.slice(0, 300).map((cfg, idx) => renameConfig(cfg, idx));
+  const renamedList = uniqueConfigs.slice(0, 200).map((cfg, idx) => renameConfig(cfg, idx));
   const finalConfigs = [dummyInfoServer, ...renamedList];
 
-  // پاک‌سازی خطوط متنی با فرمت استاندارد Unix (LF)
+  // ساخت رشته متنی استاندارد بدون خطای دکود
   const plainText = finalConfigs.filter(Boolean).join('\n').trim();
   const base64Sub = Buffer.from(plainText, 'utf-8').toString('base64').trim();
 
@@ -112,5 +110,5 @@ export async function runConfigWorkflow() {
   fs.writeFileSync(path.join(distDir, 'sub.txt'), base64Sub, 'utf-8');
   fs.writeFileSync(path.join(process.cwd(), 'sub.txt'), base64Sub, 'utf-8');
 
-  console.log(chalk.green(`\n✅ فایل sub.txt با موفقیت و فرمت کاملاً استاندارد با ${finalConfigs.length} کانفیگ بازنویسی شد.`));
+  console.log(chalk.green(`\n✅ فایل sub.txt با ${finalConfigs.length} کانفیگ کاملاً تمیز بازنویسی شد.`));
 }
