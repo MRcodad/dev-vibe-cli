@@ -2,14 +2,18 @@ name: Auto Update Subscriptions
 
 on:
   schedule:
-    - cron: '*/15 * * * *' # اجرای خودکار هر ۱۵ دقیقه
-  workflow_dispatch: # امکان اجرای دستی
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      # بقیه مراحل ورک‌فلو بدون تغییر می‌مانند
+      
       - name: Checkout repository
         uses: actions/checkout@v4
 
