@@ -10,6 +10,9 @@ import { generateDashboard, generateApiFiles } from './dashboard.mjs';
 import { sendTelegramNotification } from './telegram.mjs';
 import { updateHealth, getHealthStats } from './health.mjs';
 import { getCountryFlag, getCountryName, formatServerName } from './country.mjs';
+import { analyzeCensorship, getCensorSummary } from './antiCensor.mjs';
+import { runBatchSpeedTest, formatSpeed } from './speedTest.mjs';
+import { getGlobalStats } from './gamification.mjs';
 
 function parseRawConfigs(rawData) {
   if (!rawData || typeof rawData !== 'string') return [];
@@ -219,10 +222,28 @@ export async function runTestWorkflow(options = {}) {
   });
 
   // Step 5: Health tracking
-  const healthSpinner = ora('مرحله ۵/۵: بروزرسانی تاریخچه سلامت...').start();
+  const healthSpinner = ora('مرحله ۵/۷: بروزرسانی تاریخچه سلامت...').start();
   const health = updateHealth(testedResults);
   const healthStats = getHealthStats(health);
   healthSpinner.succeed(`تاریخچه بروزرسانی شد: ${healthStats.healthyServers} سالم | ${healthStats.unstableServers} ناپایدار | ${healthStats.deadServers} مرده`);
+
+  // Step 6: Anti-censorship analysis
+  const censorSpinner = ora('مرحله ۶/۷: تحلیل ضد سانسور...').start();
+  const censorResults = await analyzeCensorship(filtered, (done, total) => {
+    censorSpinner.text = `مرحله ۶/۷: تحلیل ضد سانسور... ${done}/${total}`;
+  });
+  const censorSummary = getCensorSummary(censorResults);
+  censorSpinner.succeed(`تحلیل ضد سانسور: ${censorSummary.accessible} قابل دسترس | ${censorSummary.likelyBlocked} احتمالاً مسدود | میانگین امتیاز: ${censorSummary.avgCensorScore}`);
+
+  // Step 7: Speed estimation
+  const speedSpinner = ora('مرحله ۷/۷: تخمین سرعت...').start();
+  const topConfigs = filtered.slice(0, 20);
+  const speedResults = await runBatchSpeedTest(topConfigs, (done, total) => {
+    speedSpinner.text = `مرحله ۷/۷: تست سرعت... ${done}/${total}`;
+  }, 5);
+  const fastServers = speedResults.filter(s => s.avgSpeed > 0).length;
+  const bestSpeed = speedResults.reduce((max, s) => Math.max(max, s.avgSpeed), 0);
+  speedSpinner.succeed(`سرعت: ${fastServers} سرور تست شد | بهترین: ${formatSpeed(bestSpeed)}`);
 
   // Rename with MRCODAD branding + country flag
   const renamed = filtered.map((cfg, i) => safeRenameConfig(cfg.raw, i, cfg.country, cfg.protocol)).filter(Boolean);
@@ -258,6 +279,11 @@ export async function runTestWorkflow(options = {}) {
     avgUptime24h: healthStats.avgUptime24h,
     avgUptime7d: healthStats.avgUptime7d,
   };
+  resultsJson.censor = censorSummary;
+  resultsJson.speeds = speedResults.filter(s => s.tlsOk).map(s => ({
+    host: s.host, port: s.port, avgSpeed: s.avgSpeed, tlsLatency: s.tlsLatency, grade: s.grade,
+  }));
+  resultsJson.gamification = getGlobalStats();
   generateDashboard(resultsJson);
   generateApiFiles(filtered);
 
