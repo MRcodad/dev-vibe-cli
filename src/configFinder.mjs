@@ -4,9 +4,10 @@ import axios from 'axios';
 import ora from 'ora';
 import chalk from 'chalk';
 
+// انحصاری: استفاده دقیق و مستقیم از دو سورس مد نظر شما
 const FRESH_SOURCES = [
-  'https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector_Py/main/sub/Mix/mix.txt',
-  'https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/mixed_iran.txt'
+  'https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt',
+  'https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector_Py/main/sub/Mix/mix.txt'
 ];
 
 function parseConfigs(rawData) {
@@ -55,31 +56,36 @@ function renameConfig(config, index) {
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال استخراج و استانداردسازی کانفیگ‌ها...').start();
+  const spinner = ora('در حال استخراج انحصاری از ۲ سورس مشخص‌شده...').start();
   let rawConfigs = [];
 
   for (const url of FRESH_SOURCES) {
     try {
       const res = await axios.get(url, {
-        timeout: 10000,
+        timeout: 5000,
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
       });
-      const parsed = parseConfigs(res.data);
-      if (parsed.length > 0) rawConfigs.push(...parsed);
-    } catch (e) {}
+      
+      if (res.status === 200 && res.data) {
+        const parsed = parseConfigs(res.data);
+        if (parsed.length > 0) rawConfigs.push(...parsed);
+      }
+    } catch (e) {
+      continue;
+    }
   }
 
   if (rawConfigs.length === 0) {
-    spinner.fail('هیچ کانفیگی یافت نشد!');
+    spinner.fail('هیچ کانفیگی از این دو سورس دریافت نشد!');
     return;
   }
 
-  // ۱. اولویت با VLESS
+  // ۱. اولویت‌دهی به VLESS
   const vlessConfigs = rawConfigs.filter(c => c.startsWith('vless://'));
   const otherConfigs = rawConfigs.filter(c => !c.startsWith('vless://'));
   const sorted = [...vlessConfigs, ...otherConfigs];
 
-  // ۲. حذف تکراری‌ها
+  // ۲. حذف تکراری‌ها بر اساس IP:Port
   const uniqueConfigs = [];
   const seenKeys = new Set();
 
@@ -91,15 +97,14 @@ export async function runConfigWorkflow() {
     }
   }
 
-  spinner.succeed(`تعداد ${uniqueConfigs.length} کانفیگ سالم و یکتا پردازش شد.`);
+  spinner.succeed(`مجموعاً ${uniqueConfigs.length} کانفیگ یکتا استخراج گردید.`);
 
-  // ۳. سرور راهنما (بدون کاراکترهای ناسازگار)
+  // ۳. سرور راهنما
   const dummyInfoServer = `vless://00000000-0000-0000-0000-000000000000@127.0.0.1:8080?type=tcp&security=none#PLEASE UPDATE SUB LINK`;
 
-  const renamedList = uniqueConfigs.slice(0, 200).map((cfg, idx) => renameConfig(cfg, idx));
+  const renamedList = uniqueConfigs.slice(0, 300).map((cfg, idx) => renameConfig(cfg, idx));
   const finalConfigs = [dummyInfoServer, ...renamedList];
 
-  // ساخت رشته متنی استاندارد بدون خطای دکود
   const plainText = finalConfigs.filter(Boolean).join('\n').trim();
   const base64Sub = Buffer.from(plainText, 'utf-8').toString('base64').trim();
 
@@ -110,5 +115,5 @@ export async function runConfigWorkflow() {
   fs.writeFileSync(path.join(distDir, 'sub.txt'), base64Sub, 'utf-8');
   fs.writeFileSync(path.join(process.cwd(), 'sub.txt'), base64Sub, 'utf-8');
 
-  console.log(chalk.green(`\n✅ فایل sub.txt با ${finalConfigs.length} کانفیگ کاملاً تمیز بازنویسی شد.`));
+  console.log(chalk.green(`\n✅ فایل sub.txt با ${finalConfigs.length} کانفیگ جدید به روز رسانی شد.`));
 }
