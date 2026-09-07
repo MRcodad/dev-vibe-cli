@@ -22,6 +22,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .stat-card.tls .stat-value{color:#3b82f6}
 .stat-card.filtered .stat-value{color:#a855f7}
 .stat-card.total .stat-value{color:#f59e0b}
+.stat-card.healthy .stat-value{color:#22c55e}
+.stat-card.unstable .stat-value{color:#f59e0b}
+.stat-card.dead .stat-value{color:#ef4444}
+.health-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:30px}
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:30px}
 .chart-card{background:linear-gradient(135deg,#1a1a3e,#12122e);border-radius:12px;padding:20px;border:1px solid #2a2a5a}
 .chart-card h3{color:#ccc;font-size:15px;margin-bottom:15px;padding-bottom:10px;border-bottom:1px solid #2a2a5a}
@@ -36,6 +40,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .badge-blue{background:#0c1e3d;color:#60a5fa;border:1px solid #1e40af}
 .badge-purple{background:#2e1065;color:#c084fc;border:1px solid #6b21a8}
 .badge-gray{background:#1f2937;color:#9ca3af;border:1px solid #374151}
+.badge-yellow{background:#422006;color:#fbbf24;border:1px solid #92400e}
 table{width:100%;border-collapse:collapse}
 th{text-align:right;padding:12px 10px;color:#8888aa;font-size:12px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #2a2a5a}
 td{padding:10px;border-bottom:1px solid #1a1a3e;font-size:13px}
@@ -47,7 +52,14 @@ tr:hover td{background:rgba(124,58,237,0.05)}
 .refresh-info{color:#666;font-size:11px;margin-top:5px}
 .no-data{text-align:center;padding:60px 20px;color:#555}
 .no-data p{font-size:16px;margin-top:10px}
-@media(max-width:768px){.stats-grid{grid-template-columns:repeat(2,1fr)}.charts-grid{grid-template-columns:1fr}.stat-value{font-size:28px}.header h1{font-size:22px}}
+.uptime-bar{width:100%;height:8px;background:#1a1a3e;border-radius:4px;overflow:hidden;margin-top:4px}
+.uptime-fill{height:100%;border-radius:4px;transition:width .3s}
+.uptime-high{background:linear-gradient(90deg,#22c55e,#16a34a)}
+.uptime-mid{background:linear-gradient(90deg,#f59e0b,#d97706)}
+.uptime-low{background:linear-gradient(90deg,#ef4444,#dc2626)}
+.country-flag{font-size:18px;margin-left:4px}
+.server-name{color:#a855f7;font-weight:600;font-size:12px}
+@media(max-width:768px){.stats-grid{grid-template-columns:repeat(2,1fr)}.health-grid{grid-template-columns:1fr}.charts-grid{grid-template-columns:1fr}.stat-value{font-size:28px}.header h1{font-size:22px}}
 @media(max-width:480px){.stats-grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -64,6 +76,11 @@ tr:hover td{background:rgba(124,58,237,0.05)}
     <div class="stat-card tls"><div class="stat-icon">🔒</div><div class="stat-value" id="tlsCount">-</div><div class="stat-label">TLS موفق</div></div>
     <div class="stat-card filtered"><div class="stat-icon">⭐</div><div class="stat-value" id="filteredCount">-</div><div class="stat-label">نهایی (فیلتر شده)</div></div>
   </div>
+  <div class="health-grid" id="healthGrid">
+    <div class="stat-card healthy"><div class="stat-icon">💚</div><div class="stat-value" id="healthyCount">-</div><div class="stat-label">سالم (>80%)</div><div class="uptime-bar"><div class="uptime-fill uptime-high" id="healthyBar" style="width:0%"></div></div></div>
+    <div class="stat-card unstable"><div class="stat-icon">⚠️</div><div class="stat-value" id="unstableCount">-</div><div class="stat-label">ناپایدار (30-80%)</div><div class="uptime-bar"><div class="uptime-fill uptime-mid" id="unstableBar" style="width:0%"></div></div></div>
+    <div class="stat-card dead"><div class="stat-icon">❌</div><div class="stat-value" id="deadCount">-</div><div class="stat-label">مرده (<30%)</div><div class="uptime-bar"><div class="uptime-fill uptime-low" id="deadBar" style="width:0%"></div></div></div>
+  </div>
   <div class="charts-grid">
     <div class="chart-card"><h3>توزیع پروتکل‌ها</h3><canvas id="protocolChart"></canvas></div>
     <div class="chart-card"><h3>توزیع کشورها</h3><canvas id="countryChart"></canvas></div>
@@ -73,11 +90,11 @@ tr:hover td{background:rgba(124,58,237,0.05)}
   <div class="table-card">
     <div class="table-header">
       <h3>لیست سرورها (<span id="serverCount">0</span>)</h3>
-      <input type="text" class="search-box" id="searchBox" placeholder="جستجو...">
+      <input type="text" class="search-box" id="searchBox" placeholder="جستجو (آدرس، پروتکل، کشور)...">
     </div>
     <div style="overflow-x:auto">
       <table>
-        <thead><tr><th>#</th><th>وضعیت</th><th>پروتکل</th><th>آدرس سرور</th><th>پورت</th><th>کشور</th><th>پینگ</th><th>امتیاز</th></tr></thead>
+        <thead><tr><th>#</th><th>وضعیت</th><th>نام سرور</th><th>پروتکل</th><th>آدرس سرور</th><th>پورت</th><th>کشور</th><th>پینگ</th><th>امتیاز</th></tr></thead>
         <tbody id="serverTable"></tbody>
       </table>
     </div>
@@ -86,6 +103,7 @@ tr:hover td{background:rgba(124,58,237,0.05)}
 <div class="footer">MRCODAD V2Ray Subscription Platform &mdash; بروزرسانی خودکار هر ۱۵ دقیقه</div>
 <script>
 const COLORS=['#7c3aed','#3b82f6','#22c55e','#f59e0b','#ef4444','#ec4899','#06b6d4','#8b5cf6','#10b981','#f97316','#6366f1','#14b8a6'];
+const FLAGS={'AF':'🇦🇫','AL':'🇦🇱','DZ':'🇩🇿','AD':'🇦🇩','AO':'🇦🇴','AG':'🇦🇬','AR':'🇦🇷','AM':'🇦🇲','AU':'🇦🇺','AT':'🇦🇹','AZ':'🇦🇿','BS':'🇧🇸','BH':'🇧🇭','BD':'🇧🇩','BB':'🇧🇧','BY':'🇧🇾','BE':'🇧🇪','BZ':'🇧🇿','BJ':'🇧🇯','BT':'🇧🇹','BO':'🇧🇴','BA':'🇧🇦','BW':'🇧🇼','BR':'🇧🇷','BN':'🇧🇳','BG':'🇧🇬','BF':'🇧🇫','BI':'🇧🇮','KH':'🇰🇭','CM':'🇨🇲','CA':'🇨🇦','CV':'🇨🇻','CF':'🇨🇫','TD':'🇹🇩','CL':'🇨🇱','CN':'🇨🇳','CO':'🇨🇴','KM':'🇰🇲','CG':'🇨🇬','CR':'🇨🇷','HR':'🇭🇷','CU':'🇨🇺','CY':'🇨🇾','CZ':'🇨🇿','DK':'🇩🇰','DJ':'🇯🇮','DM':'🇩🇲','DO':'🇩🇴','EC':'🇪🇨','EG':'🇪🇬','SV':'🇸🇻','GQ':'🇬🇶','ER':'🇪🇷','EE':'🇪🇪','ET':'🇪🇹','FJ':'🇫🇯','FI':'🇫🇮','FR':'🇫🇷','GA':'🇬🇦','GM':'🇬🇲','GE':'🇬🇪','DE':'🇩🇪','GH':'🇬🇭','GR':'🇬🇷','GD':'🇬🇩','GT':'🇬🇹','GN':'🇬🇳','GW':'🇬🇼','GY':'🇬🇾','HT':'🇭🇹','HN':'🇭🇳','HU':'🇭🇺','IS':'🇮🇸','IN':'🇮🇳','ID':'🇮🇩','IR':'🇮🇷','IQ':'🇮🇶','IE':'🇮🇪','IL':'🇮🇱','IT':'🇮🇹','JM':'🇯🇲','JP':'🇯🇵','JO':'🇯🇴','KZ':'🇰🇿','KE':'🇰🇪','KI':'🇰🇮','KP':'🇰🇵','KR':'🇰🇷','KW':'🇰🇼','KG':'🇰🇬','LA':'🇱🇦','LV':'🇱🇻','LB':'🇱🇧','LS':'🇱🇸','LR':'🇱🇷','LY':'🇱🇾','LI':'🇱🇮','LT':'🇱🇹','LU':'🇱🇺','MG':'🇲🇬','MW':'🇲🇼','MY':'🇲🇾','MV':'🇲🇻','ML':'🇲🇱','MT':'🇲🇹','MH':'🇲🇭','MR':'🇲🇷','MU':'🇲🇺','MX':'🇲🇽','FM':'🇫🇲','MD':'🇲🇩','MC':'🇲🇨','MN':'🇲🇳','ME':'🇲🇪','MA':'🇲🇦','MZ':'🇲🇿','MM':'🇲🇲','NA':'🇳🇦','NR':'🇳🇷','NP':'🇳🇵','NL':'🇳🇱','NZ':'🇳🇿','NI':'🇳🇮','NE':'🇳🇪','NG':'🇳🇬','NO':'🇳🇴','OM':'🇴🇲','PK':'🇵🇰','PW':'🇵🇼','PA':'🇵🇦','PG':'🇵🇬','PY':'🇵🇾','PE':'🇵🇪','PH':'🇵🇭','PL':'🇵🇱','PT':'🇵🇹','QA':'🇶🇦','RO':'🇷🇴','RU':'🇷🇺','RW':'🇷🇼','KN':'🇰🇳','LC':'🇱🇨','VC':'🇻🇨','WS':'🇼🇸','SM':'🇸🇲','ST':'🇸🇹','SA':'🇸🇦','SN':'🇸🇳','RS':'🇷🇸','SC':'🇸🇨','SL':'🇸🇱','SG':'🇸🇬','SK':'🇸🇰','SI':'🇸🇮','SB':'🇸🇧','SO':'🇸🇴','ZA':'🇿🇦','SS':'🇸🇸','ES':'🇪🇸','LK':'🇱🇰','SD':'🇸🇩','SR':'🇸🇷','SZ':'🇸🇿','SE':'🇸🇪','CH':'🇨🇭','SY':'🇸🇾','TW':'🇹🇼','TJ':'🇹🇯','TZ':'🇹🇿','TH':'🇹🇭','TL':'🇹🇱','TG':'🇹🇬','TO':'🇹🇴','TT':'🇹🇹','TN':'🇹🇳','TR':'🇹🇷','TM':'🇹🇲','TV':'🇹🇻','UG':'🇺🇬','UA':'🇺🇦','AE':'🇦🇪','GB':'🇬🇧','US':'🇺🇸','UY':'🇺🇾','UZ':'🇺🇿','VU':'🇻🇺','VA':'🇻🇦','VE':'🇻🇪','VN':'🇻🇳','YE':'🇾🇪','ZM':'🇿🇲','ZW':'🇿🇼'};
 let data=null;
 async function loadData(){
   try{
@@ -97,6 +115,7 @@ async function loadData(){
     document.getElementById('statsGrid').innerHTML='<div class="no-data"><p>داده‌ای موجود نیست. اولین اجرا در حال انجام است...</p></div>';
   }
 }
+function getFlag(code){return FLAGS[(code||'').toUpperCase()]||'🌐'}
 function render(){
   if(!data)return;
   const s=data.summary||{};
@@ -104,6 +123,14 @@ function render(){
   document.getElementById('aliveCount').textContent=(s.alive||0).toLocaleString();
   document.getElementById('tlsCount').textContent=(s.tlsOk||0).toLocaleString();
   document.getElementById('filteredCount').textContent=(s.passedFilter||0).toLocaleString();
+  const h=data.health||{};
+  const totalH=(h.healthyServers||0)+(h.unstableServers||0)+(h.deadServers||0)||1;
+  document.getElementById('healthyCount').textContent=h.healthyServers||'-';
+  document.getElementById('unstableCount').textContent=h.unstableServers||'-';
+  document.getElementById('deadCount').textContent=h.deadServers||'-';
+  document.getElementById('healthyBar').style.width=((h.healthyServers||0)/totalH*100)+'%';
+  document.getElementById('unstableBar').style.width=((h.unstableServers||0)/totalH*100)+'%';
+  document.getElementById('deadBar').style.width=((h.deadServers||0)/totalH*100)+'%';
   document.getElementById('refreshInfo').textContent='آخرین بروزرسانی: '+(data.timestamp||'-');
   renderCharts();
   renderTable(data.configs||[]);
@@ -112,9 +139,9 @@ function renderCharts(){
   const chartDefaults={responsive:true,plugins:{legend:{labels:{color:'#aaa',font:{size:12}}}},scales:{}};
   const scaleDefaults={x:{ticks:{color:'#888'},grid:{color:'#1a1a3e'}},y:{ticks:{color:'#888'},grid:{color:'#1a1a3e'}}};
   const proto=data.byProtocol||{};
-  new Chart(document.getElementById('protocolChart'),{type:'doughnut',data:{labels:Object.keys(proto),datasets:[{data:Object.values(proto),backgroundColor:COLORS}]},options:{...chartDefaults,plugins:{legend:{position:'bottom',labels:{color:'#aaa',padding:12}}}}});
+  new Chart(document.getElementById('protocolChart'),{type:'doughnut',data:{labels:Object.keys(proto).map(k=>k.toUpperCase()),datasets:[{data:Object.values(proto),backgroundColor:COLORS}]},options:{...chartDefaults,plugins:{legend:{position:'bottom',labels:{color:'#aaa',padding:12}}}}});
   const countries=Object.fromEntries(Object.entries(data.byCountry||{}).slice(0,12));
-  new Chart(document.getElementById('countryChart'),{type:'bar',data:{labels:Object.keys(countries),datasets:[{label:'سرور',data:Object.values(countries),backgroundColor:COLORS.slice(0,Object.keys(countries).length)}]},options:{...chartDefaults,indexAxis:'y',plugins:{legend:{display:false}},scales:scaleDefaults}});
+  new Chart(document.getElementById('countryChart'),{type:'bar',data:{labels:Object.keys(countries).map(c=>getFlag(c)+' '+c),datasets:[{label:'سرور',data:Object.values(countries),backgroundColor:COLORS.slice(0,Object.keys(countries).length)}]},options:{...chartDefaults,indexAxis:'y',plugins:{legend:{display:false}},scales:scaleDefaults}});
   const configs=data.configs||[];
   const latencies=configs.filter(c=>c.latency&&c.latency<5000).map(c=>c.latency);
   const latBuckets={'<100ms':0,'100-300ms':0,'300-500ms':0,'500-1s':0,'1-2s':0,'>2s':0};
@@ -128,20 +155,23 @@ function renderCharts(){
 function renderTable(configs){
   const tbody=document.getElementById('serverTable');
   document.getElementById('serverCount').textContent=configs.length;
-  if(!configs.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:#555">داده‌ای موجود نیست</td></tr>';return}
+  if(!configs.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:40px;color:#555">داده‌ای موجود نیست</td></tr>';return}
   tbody.innerHTML=configs.map((c,i)=>{
     const cls=c.alive?'alive':'dead';
     const proto=c.protocol||'?';
     const protoBadge=proto==='vless'?'badge-green':proto==='vmess'?'badge-blue':proto==='trojan'?'badge-purple':'badge-gray';
     const latency=c.latency||'-';
-    const latencyClass=latency<200?'badge-green':latency<500?'badge-blue':latency<1000?'badge-yellow':'badge-red';
-    return '<tr><td>'+(i+1)+'</td><td><span class="status-dot '+cls+'"></span>'+(c.alive?'فعال':'غیرفعال')+'</td><td><span class="badge '+protoBadge+'">'+proto.toUpperCase()+'</span></td><td style="direction:ltr;text-align:left;font-family:monospace;font-size:12px">'+(c.host||'-')+'</td><td>'+c.port+'</td><td>'+(c.country||'<span class="badge badge-gray">?</span>')+'</td><td><span class="badge '+latencyClass+'">'+latency+'ms</span></td><td><strong>'+(c.score||0)+'</strong></td></tr>';
+    const latencyClass=typeof latency==='number'?(latency<200?'badge-green':latency<500?'badge-blue':latency<1000?'badge-yellow':'badge-red'):'badge-gray';
+    const flag=c.flag||getFlag(c.country);
+    const countryName=c.countryName||c.country||'?';
+    const serverName='MRCODAD '+flag+' Node-'+String(i+1).padStart(3,'0');
+    return '<tr><td>'+(i+1)+'</td><td><span class="status-dot '+cls+'"></span>'+(c.alive?'فعال':'غیرفعال')+'</td><td><span class="server-name">'+serverName+'</span></td><td><span class="badge '+protoBadge+'">'+proto.toUpperCase()+'</span></td><td style="direction:ltr;text-align:left;font-family:monospace;font-size:12px">'+(c.host||'-')+'</td><td>'+c.port+'</td><td><span class="country-flag">'+flag+'</span> '+countryName+'</td><td><span class="badge '+latencyClass+'">'+latency+(typeof latency==='number'?'ms':'')+'</span></td><td><strong>'+(c.score||0)+'</strong></td></tr>';
   }).join('');
 }
 document.getElementById('searchBox').addEventListener('input',function(){
   if(!data||!data.configs)return;
   const q=this.value.toLowerCase();
-  const filtered=data.configs.filter(c=>(c.host||'').toLowerCase().includes(q)||(c.protocol||'').toLowerCase().includes(q)||(c.country||'').toLowerCase().includes(q));
+  const filtered=data.configs.filter(c=>(c.host||'').toLowerCase().includes(q)||(c.protocol||'').toLowerCase().includes(q)||(c.country||'').toLowerCase().includes(q)||(c.countryName||'').includes(q));
   renderTable(filtered);
 });
 loadData();

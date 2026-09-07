@@ -31,13 +31,6 @@ jobs:
       - name: Run Config Tester
         run: node src/index.mjs test-configs --fast
 
-      - name: Debug - Show files
-        run: |
-          echo "=== dist/ contents ==="
-          ls -la dist/
-          echo "=== sub.txt first 100 chars ==="
-          head -c 100 dist/sub.txt || echo "sub.txt not found"
-
       - name: Commit and push updated configs
         run: |
           git config user.name "github-actions[bot]"

@@ -8,6 +8,8 @@ import { runTests } from './configTester.mjs';
 import { filterConfigs } from './configFilter.mjs';
 import { generateDashboard, generateApiFiles } from './dashboard.mjs';
 import { sendTelegramNotification } from './telegram.mjs';
+import { updateHealth, getHealthStats } from './health.mjs';
+import { getCountryFlag, getCountryName, formatServerName } from './country.mjs';
 
 function parseRawConfigs(rawData) {
   if (!rawData || typeof rawData !== 'string') return [];
@@ -31,8 +33,8 @@ function getUniqueKey(config) {
   return config;
 }
 
-function safeRenameConfig(config, index) {
-  const safeName = `Node-${String(index + 1).padStart(3, '0')}`;
+function safeRenameConfig(config, index, countryCode, protocol) {
+  const safeName = formatServerName(index, countryCode, protocol);
   try {
     if (config.startsWith('vmess://')) {
       const base64Str = config.replace('vmess://', '').trim();
@@ -44,7 +46,7 @@ function safeRenameConfig(config, index) {
     } else {
       const hashIndex = config.indexOf('#');
       const baseUrl = hashIndex !== -1 ? config.substring(0, hashIndex) : config;
-      return `${baseUrl}#${safeName}`;
+      return `${baseUrl}#${encodeURIComponent(safeName)}`;
     }
   } catch {
     return null;
@@ -108,6 +110,8 @@ function generateResultsJson(filteredConfigs, testedResults, totalFetched, total
       host: r.host,
       port: r.port,
       country: r.country,
+      flag: r.country ? getCountryFlag(r.country) : '🌐',
+      countryName: r.country ? getCountryName(r.country) : 'نامشخص',
       alive: r.alive,
       tlsOk: r.tlsOk,
       latency: r.latency,
@@ -144,7 +148,7 @@ export async function runFetchWorkflow() {
   let count = 0;
   for (const cfg of uniqueConfigs) {
     if (count >= 300) break;
-    const cleaned = safeRenameConfig(cfg, count);
+    const cleaned = safeRenameConfig(cfg, count, null, null);
     if (cleaned) { cleanedConfigs.push(cleaned); count++; }
   }
 
@@ -164,7 +168,7 @@ export async function runTestWorkflow(options = {}) {
   } = options;
 
   // Step 1: Fetch
-  const fetchSpinner = ora('مرحله ۱/۴: دریافت کانفیگ‌ها...').start();
+  const fetchSpinner = ora('مرحله ۱/۵: دریافت کانفیگ‌ها...').start();
   const { rawConfigs, successCount, failCount } = await fetchAllConfigs(fetchSpinner);
 
   if (rawConfigs.length === 0) {
@@ -173,7 +177,7 @@ export async function runTestWorkflow(options = {}) {
   }
 
   // Step 2: Dedup
-  fetchSpinner.text = 'مرحله ۲/۴: حذف تکرارها...';
+  fetchSpinner.text = 'مرحله ۲/۵: حذف تکرارها...';
   const vlessConfigs = rawConfigs.filter(c => c.startsWith('vless://'));
   const otherConfigs = rawConfigs.filter(c => !c.startsWith('vless://'));
   const sorted = [...vlessConfigs, ...otherConfigs];
@@ -192,9 +196,9 @@ export async function runTestWorkflow(options = {}) {
   fetchSpinner.succeed(`${rawConfigs.length} خام (${successCount}/${SUBSCRIPTION_SOURCES.length} منبع) → ${uniqueConfigs.length} یکتا → ${configsToTest.length} برای تست`);
 
   // Step 3: Test
-  const testSpinner = ora('مرحله ۳/۴: تست شبکه (TCP + TLS + Speed)...').start();
+  const testSpinner = ora('مرحله ۳/۵: تست شبکه (TCP + TLS + Speed)...').start();
   const testedResults = await runTests(configsToTest, (tested, total) => {
-    testSpinner.text = `مرحله ۳/۴: تست شبکه... ${tested}/${total}`;
+    testSpinner.text = `مرحله ۳/۵: تست شبکه... ${tested}/${total}`;
   });
 
   const aliveCount = testedResults.filter(r => r.alive).length;
@@ -202,7 +206,7 @@ export async function runTestWorkflow(options = {}) {
   testSpinner.succeed(`تست تمام شد: ${aliveCount} زنده | ${tlsCount} TLS موفق`);
 
   // Step 4: Filter
-  const filterSpinner = ora('مرحله ۴/۴: فیلتر هوشمند...').start();
+  const filterSpinner = ora('مرحله ۴/۵: فیلتر هوشمند...').start();
   const filtered = await filterConfigs(testedResults, {
     countryInclude,
     countryExclude,
@@ -210,11 +214,18 @@ export async function runTestWorkflow(options = {}) {
     maxLatency,
     fastMode,
     onProgress: (msg) => {
-      if (msg === 'country') filterSpinner.text = 'مرحله ۴/۴: تشخیص کشور سرورها...';
+      if (msg === 'country') filterSpinner.text = 'مرحله ۴/۵: تشخیص کشور سرورها...';
     },
   });
 
-  const renamed = filtered.map((cfg, i) => safeRenameConfig(cfg.raw, i)).filter(Boolean);
+  // Step 5: Health tracking
+  const healthSpinner = ora('مرحله ۵/۵: بروزرسانی تاریخچه سلامت...').start();
+  const health = updateHealth(testedResults);
+  const healthStats = getHealthStats(health);
+  healthSpinner.succeed(`تاریخچه بروزرسانی شد: ${healthStats.healthyServers} سالم | ${healthStats.unstableServers} ناپایدار | ${healthStats.deadServers} مرده`);
+
+  // Rename with MRCODAD branding + country flag
+  const renamed = filtered.map((cfg, i) => safeRenameConfig(cfg.raw, i, cfg.country, cfg.protocol)).filter(Boolean);
   filterSpinner.succeed(`فیلتر نهایی: ${renamed.length} کانفیگ با کیفیت بالا`);
 
   // Stats
@@ -239,6 +250,14 @@ export async function runTestWorkflow(options = {}) {
   writeOutput(renamed);
 
   const resultsJson = generateResultsJson(renamed, filtered, rawConfigs.length, uniqueConfigs.length);
+  resultsJson.health = {
+    totalServers: healthStats.totalServers,
+    healthyServers: healthStats.healthyServers,
+    unstableServers: healthStats.unstableServers,
+    deadServers: healthStats.deadServers,
+    avgUptime24h: healthStats.avgUptime24h,
+    avgUptime7d: healthStats.avgUptime7d,
+  };
   generateDashboard(resultsJson);
   generateApiFiles(filtered);
 

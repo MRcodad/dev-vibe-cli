@@ -8,14 +8,14 @@ const program = new Command();
 
 program
   .name('dev-vibe')
-  .description('M code Developer Utilities CLI')
+  .description('MRCODAD V2Ray Subscription CLI')
   .version('1.0.0');
 
 program
   .command('fetch-configs')
   .description('Collect & dedup V2Ray configs (no testing)')
   .action(async () => {
-    console.log(chalk.bold.red('\nM code Config Fetcher\n'));
+    console.log(chalk.bold.cyan('\n⚡ MRCODAD Config Fetcher ⚡\n'));
     await runFetchWorkflow();
   });
 
@@ -28,7 +28,7 @@ program
   .option('--max-latency <number>', 'Max latency in ms (default: 2000)', '2000')
   .option('--fast', 'Fast mode: skip country detection')
   .action(async (opts) => {
-    console.log(chalk.bold.red('\nM code Config Tester & Filter\n'));
+    console.log(chalk.bold.cyan('\n⚡ MRCODAD Config Tester & Filter ⚡\n'));
     await runTestWorkflow({
       countryInclude: opts.country ? opts.country.split(',').map(c => c.trim().toUpperCase()) : null,
       countryExclude: opts.excludeCountry ? opts.excludeCountry.split(',').map(c => c.trim().toUpperCase()) : null,
@@ -36,6 +36,14 @@ program
       maxLatency: parseInt(opts.maxLatency),
       fastMode: opts.fast,
     });
+  });
+
+program
+  .command('bot')
+  .description('Start interactive Telegram bot')
+  .action(async () => {
+    console.log(chalk.bold.cyan('\n⚡ MRCODAD Telegram Bot ⚡\n'));
+    await import('./telegramBot.mjs');
   });
 
 program.parse(process.argv);
