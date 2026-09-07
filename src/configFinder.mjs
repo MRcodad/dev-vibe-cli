@@ -12,7 +12,6 @@ const FRESH_SOURCES = [
 function parseConfigs(rawData) {
   if (!rawData || typeof rawData !== 'string') return [];
   let text = rawData;
-  // اگر فایل Base64 بود آن را باز می‌کنیم
   if (!text.includes('vless://') && !text.includes('vmess://') && !text.includes('trojan://') && !text.includes('ss://')) {
     try {
       text = Buffer.from(rawData.trim(), 'base64').toString('utf-8');
@@ -34,37 +33,34 @@ function getUniqueKey(config) {
   return config;
 }
 
-// تغییر نام بدون هیچ کاراکتر عجیب یا انکودینگ مخرب
-function cleanAndRenameConfig(config, index) {
-  const cleanConfig = config.replace(/[\r\n]/g, '').trim();
-  const simpleName = `Server-${index + 1}`;
-
+function safeRenameConfig(config, index) {
+  const safeName = `Node-${String(index + 1).padStart(3, '0')}`;
   try {
-    if (cleanConfig.startsWith('vmess://')) {
-      const base64Str = cleanConfig.replace('vmess://', '').trim();
-      const parsed = JSON.parse(Buffer.from(base64Str, 'base64').toString('utf-8'));
-      parsed.ps = simpleName;
-      return `vmess://${Buffer.from(JSON.stringify(parsed)).toString('base64')}`;
+    if (config.startsWith('vmess://')) {
+      const base64Str = config.replace('vmess://', '').trim();
+      const decoded = Buffer.from(base64Str, 'base64').toString('utf-8');
+      const parsed = JSON.parse(decoded);
+      parsed.ps = safeName;
+      const reEncoded = Buffer.from(JSON.stringify(parsed), 'utf-8').toString('base64');
+      return `vmess://${reEncoded}`;
     } else {
-      const hashIndex = cleanConfig.indexOf('#');
-      if (hashIndex !== -1) {
-        return `${cleanConfig.substring(0, hashIndex)}#${simpleName}`;
-      }
-      return `${cleanConfig}#${simpleName}`;
+      const hashIndex = config.indexOf('#');
+      const baseUrl = hashIndex !== -1 ? config.substring(0, hashIndex) : config;
+      return `${baseUrl}#${safeName}`;
     }
   } catch {
-    return cleanConfig;
+    return null;
   }
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال دریافت و پردازش خط‌به‌خط کانفیگ‌ها...').start();
+  const spinner = ora('در حال استخراج و استانداردسازی کانفیگ‌ها...').start();
   let rawConfigs = [];
 
   for (const url of FRESH_SOURCES) {
     try {
       const res = await axios.get(url, {
-        timeout: 8000,
+        timeout: 10000,
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
       });
       
@@ -82,12 +78,10 @@ export async function runConfigWorkflow() {
     return;
   }
 
-  // ۱. اولویت با VLESS
   const vlessConfigs = rawConfigs.filter(c => c.startsWith('vless://'));
   const otherConfigs = rawConfigs.filter(c => !c.startsWith('vless://'));
   const sorted = [...vlessConfigs, ...otherConfigs];
 
-  // ۲. حذف تکراری‌ها
   const uniqueConfigs = [];
   const seenKeys = new Set();
 
@@ -99,16 +93,22 @@ export async function runConfigWorkflow() {
     }
   }
 
-  spinner.succeed(`مجموعاً ${uniqueConfigs.length} کانفیگ سالم استخراج شد.`);
+  const cleanedConfigs = [];
+  let count = 0;
+  for (const cfg of uniqueConfigs) {
+    if (count >= 300) break;
+    const cleaned = safeRenameConfig(cfg, count);
+    if (cleaned) {
+      cleanedConfigs.push(cleaned);
+      count++;
+    }
+  }
 
-  // ۳. سرور راهنما (بدون کاراکتر فارسی یا خاص)
-  const dummyInfoServer = `vless://00000000-0000-0000-0000-000000000000@127.0.0.1:8080?type=tcp&security=none#0-UPDATE-SUB-LINK`;
+  spinner.succeed(`مجموعاً ${cleanedConfigs.length} کانفیگ کاملاً سالم آماده گردید.`);
 
-  // ساخت لیست ۳۰۰ تایی با نام‌گذاری امن
-  const renamedList = uniqueConfigs.slice(0, 300).map((cfg, idx) => cleanAndRenameConfig(cfg, idx));
-  const finalConfigs = [dummyInfoServer, ...renamedList];
+  const dummyInfoServer = `vless://00000000-0000-0000-0000-000000000000@127.0.0.1:8080?type=tcp&security=none#00-UPDATE-SUB-LINK`;
+  const finalConfigs = [dummyInfoServer, ...cleanedConfigs];
 
-  // ساخت خروجی استاندارد
   const plainText = finalConfigs.join('\n').trim();
   const base64Sub = Buffer.from(plainText, 'utf-8').toString('base64').trim();
 
@@ -119,5 +119,5 @@ export async function runConfigWorkflow() {
   fs.writeFileSync(path.join(distDir, 'sub.txt'), base64Sub, 'utf-8');
   fs.writeFileSync(path.join(process.cwd(), 'sub.txt'), base64Sub, 'utf-8');
 
-  console.log(chalk.green(`\n✅ فایل sub.txt با دقیقاً ${finalConfigs.length} کانفیگ بدون هیچ خطای دکود ذخیره شد.`));
+  console.log(chalk.green(`\n✅ ساب‌لینک جدید با ${finalConfigs.length} کانفیگ استاندارد ساخته شد.`));
 }
