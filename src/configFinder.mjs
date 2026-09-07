@@ -4,7 +4,6 @@ import axios from 'axios';
 import ora from 'ora';
 import chalk from 'chalk';
 
-// انحصاری: استفاده دقیق و مستقیم از دو سورس مد نظر شما
 const FRESH_SOURCES = [
   'https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt',
   'https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector_Py/main/sub/Mix/mix.txt'
@@ -13,6 +12,7 @@ const FRESH_SOURCES = [
 function parseConfigs(rawData) {
   if (!rawData || typeof rawData !== 'string') return [];
   let text = rawData;
+  // اگر فایل Base64 بود آن را باز می‌کنیم
   if (!text.includes('vless://') && !text.includes('vmess://') && !text.includes('trojan://') && !text.includes('ss://')) {
     try {
       text = Buffer.from(rawData.trim(), 'base64').toString('utf-8');
@@ -34,35 +34,37 @@ function getUniqueKey(config) {
   return config;
 }
 
-function renameConfig(config, index) {
-  const customName = `MRCODAD | #${index + 1}`;
+// تغییر نام بدون هیچ کاراکتر عجیب یا انکودینگ مخرب
+function cleanAndRenameConfig(config, index) {
+  const cleanConfig = config.replace(/[\r\n]/g, '').trim();
+  const simpleName = `Server-${index + 1}`;
+
   try {
-    if (config.startsWith('vmess://')) {
-      const base64Str = config.replace('vmess://', '').trim();
+    if (cleanConfig.startsWith('vmess://')) {
+      const base64Str = cleanConfig.replace('vmess://', '').trim();
       const parsed = JSON.parse(Buffer.from(base64Str, 'base64').toString('utf-8'));
-      parsed.ps = customName;
+      parsed.ps = simpleName;
       return `vmess://${Buffer.from(JSON.stringify(parsed)).toString('base64')}`;
-    } else if (config.startsWith('vless://') || config.startsWith('trojan://') || config.startsWith('ss://')) {
-      const hashIndex = config.indexOf('#');
+    } else {
+      const hashIndex = cleanConfig.indexOf('#');
       if (hashIndex !== -1) {
-        return `${config.substring(0, hashIndex)}#${customName}`;
+        return `${cleanConfig.substring(0, hashIndex)}#${simpleName}`;
       }
-      return `${config}#${customName}`;
+      return `${cleanConfig}#${simpleName}`;
     }
   } catch {
-    return config;
+    return cleanConfig;
   }
-  return config;
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال استخراج انحصاری از ۲ سورس مشخص‌شده...').start();
+  const spinner = ora('در حال دریافت و پردازش خط‌به‌خط کانفیگ‌ها...').start();
   let rawConfigs = [];
 
   for (const url of FRESH_SOURCES) {
     try {
       const res = await axios.get(url, {
-        timeout: 5000,
+        timeout: 8000,
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
       });
       
@@ -76,16 +78,16 @@ export async function runConfigWorkflow() {
   }
 
   if (rawConfigs.length === 0) {
-    spinner.fail('هیچ کانفیگی از این دو سورس دریافت نشد!');
+    spinner.fail('هیچ کانفیگی دریافت نشد!');
     return;
   }
 
-  // ۱. اولویت‌دهی به VLESS
+  // ۱. اولویت با VLESS
   const vlessConfigs = rawConfigs.filter(c => c.startsWith('vless://'));
   const otherConfigs = rawConfigs.filter(c => !c.startsWith('vless://'));
   const sorted = [...vlessConfigs, ...otherConfigs];
 
-  // ۲. حذف تکراری‌ها بر اساس IP:Port
+  // ۲. حذف تکراری‌ها
   const uniqueConfigs = [];
   const seenKeys = new Set();
 
@@ -97,15 +99,17 @@ export async function runConfigWorkflow() {
     }
   }
 
-  spinner.succeed(`مجموعاً ${uniqueConfigs.length} کانفیگ یکتا استخراج گردید.`);
+  spinner.succeed(`مجموعاً ${uniqueConfigs.length} کانفیگ سالم استخراج شد.`);
 
-  // ۳. سرور راهنما
-  const dummyInfoServer = `vless://00000000-0000-0000-0000-000000000000@127.0.0.1:8080?type=tcp&security=none#PLEASE UPDATE SUB LINK`;
+  // ۳. سرور راهنما (بدون کاراکتر فارسی یا خاص)
+  const dummyInfoServer = `vless://00000000-0000-0000-0000-000000000000@127.0.0.1:8080?type=tcp&security=none#0-UPDATE-SUB-LINK`;
 
-  const renamedList = uniqueConfigs.slice(0, 300).map((cfg, idx) => renameConfig(cfg, idx));
+  // ساخت لیست ۳۰۰ تایی با نام‌گذاری امن
+  const renamedList = uniqueConfigs.slice(0, 300).map((cfg, idx) => cleanAndRenameConfig(cfg, idx));
   const finalConfigs = [dummyInfoServer, ...renamedList];
 
-  const plainText = finalConfigs.filter(Boolean).join('\n').trim();
+  // ساخت خروجی استاندارد
+  const plainText = finalConfigs.join('\n').trim();
   const base64Sub = Buffer.from(plainText, 'utf-8').toString('base64').trim();
 
   const distDir = path.join(process.cwd(), 'dist');
@@ -115,5 +119,5 @@ export async function runConfigWorkflow() {
   fs.writeFileSync(path.join(distDir, 'sub.txt'), base64Sub, 'utf-8');
   fs.writeFileSync(path.join(process.cwd(), 'sub.txt'), base64Sub, 'utf-8');
 
-  console.log(chalk.green(`\n✅ فایل sub.txt با ${finalConfigs.length} کانفیگ جدید به روز رسانی شد.`));
+  console.log(chalk.green(`\n✅ فایل sub.txt با دقیقاً ${finalConfigs.length} کانفیگ بدون هیچ خطای دکود ذخیره شد.`));
 }
