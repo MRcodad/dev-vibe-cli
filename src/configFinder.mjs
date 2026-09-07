@@ -4,14 +4,18 @@ import axios from 'axios';
 import ora from 'ora';
 import chalk from 'chalk';
 
+// سورس‌های بسیار جامع و اختصاصی پروتکل‌های VLESS و REALITY
 const FRESH_SOURCES = [
+  'https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/mix',
+  'https://raw.githubusercontent.com/MohammadBahemmat/V2ray-Collector/main/sub/mix.txt',
   'https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/main/V2Ray-Config-By-EbraSha-All-Type.txt',
   'https://raw.githubusercontent.com/iboxz/free-v2ray-collector/main/sub/mix.txt',
-  'https://raw.githubusercontent.com/MohammadBahemmat/V2ray-Collector/main/sub/mix.txt',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1.txt',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub2.txt',
   'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub3.txt',
-  'https://raw.githubusercontent.com/mrvcoder/V2rayCollector/master/sub/mix.txt'
+  'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub4.txt',
+  'https://raw.githubusercontent.com/mrvcoder/V2rayCollector/master/sub/mix.txt',
+  'https://raw.githubusercontent.com/mft0/v2ray-collector/main/sub/reality.txt'
 ];
 
 function parseConfigs(rawData) {
@@ -27,7 +31,6 @@ function parseConfigs(rawData) {
   return lines.map(l => l.trim()).filter(line => validProtocols.some(proto => line.startsWith(proto)));
 }
 
-// استخراج IP و Port جهت شناسایی سرورهای تکراری
 function getUniqueKey(config) {
   try {
     const clean = config.split('#')[0];
@@ -59,13 +62,13 @@ function renameConfig(config, index) {
 }
 
 export async function runConfigWorkflow() {
-  const spinner = ora('در حال جمع‌آوری و فیلتر هوشمند کانفیگ‌ها...').start();
+  const spinner = ora('در حال جمع‌آوری حداکثری کانفیگ‌های زنده...').start();
   let rawConfigs = [];
 
   for (const url of FRESH_SOURCES) {
     try {
       const res = await axios.get(url, {
-        timeout: 8000,
+        timeout: 10000,
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
       });
       const parsed = parseConfigs(res.data);
@@ -78,12 +81,12 @@ export async function runConfigWorkflow() {
     return;
   }
 
-  // ۱. اولویت‌دهی مطلق به VLESS و REALITY
+  // اولویت مطلق با VLESS و REALITY
   const vlessConfigs = rawConfigs.filter(c => c.startsWith('vless://'));
   const otherConfigs = rawConfigs.filter(c => !c.startsWith('vless://'));
   const sorted = [...vlessConfigs, ...otherConfigs];
 
-  // ۲. حذف تکراری‌ها بر اساس IP:Port
+  // حذف تکراری‌ها بر اساس IP:Port
   const uniqueConfigs = [];
   const seenKeys = new Set();
 
@@ -95,16 +98,16 @@ export async function runConfigWorkflow() {
     }
   }
 
-  spinner.succeed(`تعداد ${uniqueConfigs.length} کانفیگ یکتا و اولویت‌بندی‌شده جدا شد.`);
+  spinner.succeed(`تعداد ${uniqueConfigs.length} کانفیگ یکتا جدا گردید.`);
 
-  // ۳. سرور راهنمای غیرفعال
+  // سرور راهنمای غیرفعال
   const infoNoticeName = encodeURIComponent('⚠️ قبل از اتصال لینک را آپدیت کنید');
   const dummyInfoServer = `vless://00000000-0000-0000-0000-000000000000@127.0.0.1:8080?type=tcp&security=none#${infoNoticeName}`;
 
-  // ۴. انتخاب ۶۰ کانفیگ برتر VLESS
+  // انتخاب تا ۲۵۰ کانفیگ برای افزایش شانس اتصال
   const finalConfigs = [
     dummyInfoServer,
-    ...uniqueConfigs.slice(0, 60).map((cfg, idx) => renameConfig(cfg, idx))
+    ...uniqueConfigs.slice(0, 250).map((cfg, idx) => renameConfig(cfg, idx))
   ];
 
   const plainText = finalConfigs.join('\n').trim();
@@ -117,5 +120,5 @@ export async function runConfigWorkflow() {
   fs.writeFileSync(path.join(distDir, 'sub.txt'), base64Sub, 'utf-8');
   fs.writeFileSync(path.join(process.cwd(), 'sub.txt'), base64Sub, 'utf-8');
 
-  console.log(chalk.green(`\n✅ ۶۰ کانفیگ VLESS یکتا و سالم ذخیره شد.`));
+  console.log(chalk.green(`\n✅ ۲۵۰ کانفیگ جدید در sub.txt قرار گرفت.`));
 }
