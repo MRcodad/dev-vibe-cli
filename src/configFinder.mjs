@@ -3,13 +3,11 @@ import path from 'path';
 import axios from 'axios';
 import ora from 'ora';
 import chalk from 'chalk';
+import { SUBSCRIPTION_SOURCES } from './sources.mjs';
 import { runTests } from './configTester.mjs';
 import { filterConfigs } from './configFilter.mjs';
-
-const FRESH_SOURCES = [
-  'https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt',
-  'https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector_Py/main/sub/Mix/mix.txt'
-];
+import { generateDashboard, generateApiFiles } from './dashboard.mjs';
+import { sendTelegramNotification } from './telegram.mjs';
 
 function parseRawConfigs(rawData) {
   if (!rawData || typeof rawData !== 'string') return [];
@@ -53,7 +51,37 @@ function safeRenameConfig(config, index) {
   }
 }
 
-function generateResultsJson(finalConfigs, testedResults, totalFetched, totalUnique) {
+async function fetchAllConfigs(spinner) {
+  let rawConfigs = [];
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let i = 0; i < SUBSCRIPTION_SOURCES.length; i++) {
+    const url = SUBSCRIPTION_SOURCES[i];
+    const sourceName = url.split('/').slice(-3, -1).join('/');
+    spinner.text = `دریافت منابع... (${i + 1}/${SUBSCRIPTION_SOURCES.length}) ${sourceName}`;
+    try {
+      const res = await axios.get(url, {
+        timeout: 12000,
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+      });
+      if (res.status === 200 && res.data) {
+        const parsed = parseRawConfigs(res.data);
+        if (parsed.length > 0) {
+          rawConfigs.push(...parsed);
+          successCount++;
+        }
+      }
+    } catch {
+      failCount++;
+      continue;
+    }
+  }
+
+  return { rawConfigs, successCount, failCount };
+}
+
+function generateResultsJson(filteredConfigs, testedResults, totalFetched, totalUnique) {
   const byCountry = {};
   const byProtocol = {};
 
@@ -71,7 +99,7 @@ function generateResultsJson(finalConfigs, testedResults, totalFetched, totalUni
       tested: testedResults.length,
       alive: testedResults.filter(r => r.alive).length,
       tlsOk: testedResults.filter(r => r.tlsOk).length,
-      passedFilter: finalConfigs.length,
+      passedFilter: filteredConfigs.length,
     },
     byCountry,
     byProtocol,
@@ -91,22 +119,7 @@ function generateResultsJson(finalConfigs, testedResults, totalFetched, totalUni
 // --- Main workflow: collect only (no testing) ---
 export async function runFetchWorkflow() {
   const spinner = ora('در حال دریافت کانفیگ‌ها...').start();
-  let rawConfigs = [];
-
-  for (const url of FRESH_SOURCES) {
-    try {
-      const res = await axios.get(url, {
-        timeout: 10000,
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-      });
-      if (res.status === 200 && res.data) {
-        const parsed = parseRawConfigs(res.data);
-        if (parsed.length > 0) rawConfigs.push(...parsed);
-      }
-    } catch {
-      continue;
-    }
-  }
+  const { rawConfigs, successCount, failCount } = await fetchAllConfigs(spinner);
 
   if (rawConfigs.length === 0) {
     spinner.fail('هیچ کانفیگی دریافت نشد!');
@@ -135,7 +148,7 @@ export async function runFetchWorkflow() {
     if (cleaned) { cleanedConfigs.push(cleaned); count++; }
   }
 
-  spinner.succeed(`${rawConfigs.length} خام → ${uniqueConfigs.length} یکتا → ${cleanedConfigs.length} نهایی`);
+  spinner.succeed(`${rawConfigs.length} خام (${successCount} منبع) → ${uniqueConfigs.length} یکتا → ${cleanedConfigs.length} نهایی`);
 
   writeOutput(cleanedConfigs);
 }
@@ -152,22 +165,7 @@ export async function runTestWorkflow(options = {}) {
 
   // Step 1: Fetch
   const fetchSpinner = ora('مرحله ۱/۴: دریافت کانفیگ‌ها...').start();
-  let rawConfigs = [];
-
-  for (const url of FRESH_SOURCES) {
-    try {
-      const res = await axios.get(url, {
-        timeout: 10000,
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-      });
-      if (res.status === 200 && res.data) {
-        const parsed = parseRawConfigs(res.data);
-        if (parsed.length > 0) rawConfigs.push(...parsed);
-      }
-    } catch {
-      continue;
-    }
-  }
+  const { rawConfigs, successCount, failCount } = await fetchAllConfigs(fetchSpinner);
 
   if (rawConfigs.length === 0) {
     fetchSpinner.fail('هیچ کانفیگی دریافت نشد!');
@@ -191,7 +189,7 @@ export async function runTestWorkflow(options = {}) {
   }
 
   const configsToTest = uniqueConfigs.slice(0, 300);
-  fetchSpinner.succeed(`${rawConfigs.length} خام → ${uniqueConfigs.length} یکتا → ${configsToTest.length} برای تست`);
+  fetchSpinner.succeed(`${rawConfigs.length} خام (${successCount}/${SUBSCRIPTION_SOURCES.length} منبع) → ${uniqueConfigs.length} یکتا → ${configsToTest.length} برای تست`);
 
   // Step 3: Test
   const testSpinner = ora('مرحله ۳/۴: تست شبکه (TCP + TLS + Speed)...').start();
@@ -237,13 +235,15 @@ export async function runTestWorkflow(options = {}) {
     console.log(chalk.cyan('  کشور:'), countryStats);
   }
 
-  // Write output
+  // Generate outputs
   writeOutput(renamed);
 
-  // Write results.json
-  const distDir = path.join(process.cwd(), 'dist');
   const resultsJson = generateResultsJson(renamed, filtered, rawConfigs.length, uniqueConfigs.length);
-  fs.writeFileSync(path.join(distDir, 'results.json'), JSON.stringify(resultsJson, null, 2), 'utf-8');
+  generateDashboard(resultsJson);
+  generateApiFiles(filtered);
+
+  // Telegram notification
+  await sendTelegramNotification(resultsJson.summary);
 }
 
 function writeOutput(configs) {

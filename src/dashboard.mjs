@@ -1,4 +1,7 @@
-<!DOCTYPE html>
+import fs from 'fs';
+import path from 'path';
+
+const DASHBOARD_HTML = `<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -148,4 +151,60 @@ loadData();
 setInterval(loadData,5*60*1000);
 </script>
 </body>
-</html>
+</html>`;
+
+export function generateDashboard(resultsJson) {
+  const distDir = path.join(process.cwd(), 'dist');
+  if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
+
+  fs.writeFileSync(path.join(distDir, 'index.html'), DASHBOARD_HTML, 'utf-8');
+
+  if (resultsJson) {
+    fs.writeFileSync(path.join(distDir, 'results.json'), JSON.stringify(resultsJson, null, 2), 'utf-8');
+  }
+
+  console.log('[Dashboard] index.html and results.json generated.');
+}
+
+export function generateApiFiles(configs) {
+  const apiDir = path.join(process.cwd(), 'dist', 'api');
+  if (!fs.existsSync(apiDir)) fs.mkdirSync(apiDir, { recursive: true });
+
+  const plainConfigs = configs.map(c => c.raw).filter(Boolean);
+
+  fs.writeFileSync(
+    path.join(apiDir, 'configs.json'),
+    JSON.stringify({ total: plainConfigs.length, configs: plainConfigs }, null, 2),
+    'utf-8'
+  );
+
+  const byProtocol = {};
+  for (const c of configs) {
+    const p = c.protocol || 'unknown';
+    if (!byProtocol[p]) byProtocol[p] = [];
+    if (c.raw) byProtocol[p].push(c.raw);
+  }
+  for (const [proto, cfgs] of Object.entries(byProtocol)) {
+    fs.writeFileSync(
+      path.join(apiDir, `${proto}.json`),
+      JSON.stringify({ protocol: proto, total: cfgs.length, configs: cfgs }, null, 2),
+      'utf-8'
+    );
+  }
+
+  const byCountry = {};
+  for (const c of configs) {
+    if (!c.country) continue;
+    if (!byCountry[c.country]) byCountry[c.country] = [];
+    if (c.raw) byCountry[c.country].push(c.raw);
+  }
+  for (const [country, cfgs] of Object.entries(byCountry)) {
+    fs.writeFileSync(
+      path.join(apiDir, `${country.toLowerCase()}.json`),
+      JSON.stringify({ country, total: cfgs.length, configs: cfgs }, null, 2),
+      'utf-8'
+    );
+  }
+
+  console.log(`[API] Generated ${Object.keys(byProtocol).length} protocol + ${Object.keys(byCountry).length} country files.`);
+}
