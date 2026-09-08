@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { getCountryFlag, getCountryName } from './country.mjs';
 import { getHealthSummary, getHealthStats } from './health.mjs';
+import { submitReport, getCrowdSummary, getConfigRankings, formatCrowdTestReport, formatReportConfirmation } from './crowdTest.mjs';
 
 const BASE_URL = 'https://api.telegram.org/bot';
 const SUB_LINK = 'https://raw.githubusercontent.com/MRcodad/dev-vibe-cli/main/dist/sub.txt';
@@ -50,6 +51,12 @@ function loadResults() {
     if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf8'));
   } catch {}
   return null;
+}
+
+function getFlag(code) {
+  if (!code || code.length !== 2) return '🌐';
+  const c = code.toUpperCase();
+  return String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65, 0x1F1E6 + c.charCodeAt(1) - 65);
 }
 
 function loadHealth() {
@@ -187,18 +194,25 @@ const WELCOME_MSG = [
   '',
   'این ربات سابسکریپشن V2Ray را مدیریت می‌کند.',
   '',
-  '📌 <b>دستورات:</b>',
+  '📌 <b>دستورات اصلی:</b>',
   '',
-  '/status — آمار کلی سابسکریپشن',
-  '/health — آمار سلامت سرورها',
-  '/list — لیست کانفیگ‌های فعال',
-  '/list vless — فیلتر بر اساس پروتکل',
-  '/list DE — فیلتر بر اساس کشور',
-  '/countries — لیست کشورها',
+  '/send — ارسال بهترین کانفیگ‌ها',
+  '/update — آپدیت قبل از وصل شدن',
   '/subscribe — لینک سابسکریپشن',
-  '/dashboard — لینک داشبورد',
-  '/api — لینک API',
-  '/help — راهنما',
+  '',
+  '📌 <b>تست و گزارش:</b>',
+  '',
+  '/test host:port good — گزارش کار کردن',
+  '/test host:port bad — گزارش کار نکردن',
+  '/crowd — گزارش تست جمعی',
+  '/rankings — رنکینگ سرورها',
+  '',
+  '📌 <b>اطلاعات:</b>',
+  '',
+  '/status — آمار کلی',
+  '/health — سلامت سرورها',
+  '/list — لیست کانفیگ‌ها',
+  '/help — راهنما کامل',
   '',
   '🔗 <b>لینک‌های سریع:</b>',
   `📡 سابسکریپشن: <a href="${SUB_LINK}">دانلود</a>`,
@@ -206,23 +220,40 @@ const WELCOME_MSG = [
 ].join('\n');
 
 const HELP_MSG = [
-  '📖 <b>راهنمای ربات</b>',
+  '📖 <b>راهنمای کامل ربات</b>',
   '',
-  '🔹 /start — پیام خوش‌آمدگویی',
-  '🔹 /status — نمایش آمار کلی (تعداد سرورها، پروتکل‌ها، کشورها)',
-  '🔹 /health — نمایش آمار سلامت و آپتایم سرورها',
-  '🔹 /list — نمایش لیست کانفیگ‌های فعال',
-  '🔹 /list vless — فقط کانفیگ‌های VLESS',
-  '🔹 /list vmess — فقط کانفیگ‌های VMess',
-  '🔹 /list DE — فقط سرورهای آلمان',
-  '🔹 /list US — فقط سرورهای آمریکا',
-  '🔹 /countries — لیست تمام کشورها با تعداد سرور',
-  '🔹 /subscribe — لینک سابسکریپشن Base64',
-  '🔹 /dashboard — لینک داشبورد آنلاین',
+  '━━━━━━━━━━━━━━━━━━━━',
+  '⚡ <b>دسترسی سریع:</b>',
+  '━━━━━━━━━━━━━━━━━━━━',
+  '🔹 /send — ارسال ۵ کانفیگ برتر',
+  '🔹 /update — راهنمای آپدیت',
+  '🔹 /subscribe — لینک سابسکریپشن',
+  '',
+  '━━━━━━━━━━━━━━━━━━━━',
+  '🧪 <b>تست جمعی:</b>',
+  '━━━━━━━━━━━━━━━━━━━━',
+  '🔹 /test host:port good — کار می‌کند',
+  '🔹 /test host:port bad — کار نمی‌کند',
+  '🔹 /crowd — گزارش تست جمعی',
+  '🔹 /rankings — رنکینگ سرورها',
+  '',
+  '━━━━━━━━━━━━━━━━━━━━',
+  '📊 <b>اطلاعات:</b>',
+  '━━━━━━━━━━━━━━━━━━━━',
+  '🔹 /status — آمار کلی',
+  '🔹 /health — سلامت سرورها',
+  '🔹 /list — لیست کانفیگ‌ها',
+  '🔹 /list DE — فیلتر کشور',
+  '🔹 /countries — لیست کشورها',
+  '🔹 /dashboard — داشبورد آنلاین',
   '🔹 /api — لینک API',
-  '🔹 /help — این پیام',
   '',
-  '💡 نکته: اطلاعات هر ۱۵ دقیقه بروزرسانی می‌شود.',
+  '━━━━━━━━━━━━━━━━━━━━',
+  '💡 <b>نکته مهم:</b>',
+  '━━━━━━━━━━━━━━━━━━━━',
+  '⚠️ قبل از وصل شدن حتماً /update بزنید!',
+  '📊 بعد از وصل شدن با /test گزارش بدید!',
+  '🔄 اطلاعات هر ۱۵ دقیقه بروزرسانی می‌شود.',
 ].join('\n');
 
 async function handleCommand(chatId, text) {
@@ -235,9 +266,10 @@ async function handleCommand(chatId, text) {
       await sendMessage(chatId, WELCOME_MSG, {
         reply_markup: {
           inline_keyboard: [
+            [{ text: '⚡ ارسال کانفیگ', callback_data: 'cmd_send' }, { text: '🔄 آپدیت', callback_data: 'cmd_update' }],
             [{ text: '📊 آمار', callback_data: 'cmd_status' }, { text: '🏥 سلامت', callback_data: 'cmd_health' }],
-            [{ text: '📋 لیست کانفیگ', callback_data: 'cmd_list' }, { text: '🌍 کشورها', callback_data: 'cmd_countries' }],
-            [{ text: '📡 سابسکریپشن', url: SUB_LINK }, { text: '📊 داشبورد', url: DASHBOARD_LINK }],
+            [{ text: '🧪 تست جمعی', callback_data: 'cmd_crowd' }, { text: '🏆 رنکینگ', callback_data: 'cmd_rankings' }],
+            [{ text: '📡 سابسکریپشن', url: SUB_LINK }],
           ],
         },
       });
@@ -277,6 +309,131 @@ async function handleCommand(chatId, text) {
       await sendMessage(chatId, `🔗 <b>API:</b>\n\n<code>${API_LINK}</code>\n\nهمه کانفیگ‌ها: <code>configs.json</code>\nفقط VLESS: <code>vless.json</code>`);
       break;
 
+    // ─── Crowd Test Commands ───
+
+    case '/test': {
+      if (!arg) {
+        await sendMessage(chatId, `🧪 <b>تست جمعی:</b>
+
+طرز استفاده:
+/test host:port good — گزارش کار کردن
+/test host:port bad — گزارش کار نکردن
+
+مثال:
+<code>/test 1.2.3.4:443 good</code>
+<code>/test 5.6.7.8:443 bad</code>
+
+💡 بعد از وصل شدن به سرور، نتیجه رو گزارش بدید!`);
+        break;
+      }
+
+      const parts = arg.split(':');
+      if (parts.length !== 2) {
+        await sendMessage(chatId, '❌ فرمت نادرست. مثال: <code>/test 1.2.3.4:443 good</code>');
+        break;
+      }
+
+      const [host, portStr] = parts;
+      const port = parseInt(portStr);
+      const status = (args[1] || '').toLowerCase();
+
+      if (!status || !['good', 'bad'].includes(status)) {
+        await sendMessage(chatId, '❌ وضعیت رو مشخص کن: <code>good</code> یا <code>bad</code>');
+        break;
+      }
+
+      const working = status === 'good';
+      const result = submitReport(
+        String(chatId),
+        msg.from?.username || msg.from?.first_name || String(chatId),
+        host,
+        port,
+        working
+      );
+
+      await sendMessage(chatId, formatReportConfirmation(result));
+      break;
+    }
+
+    case '/crowd': {
+      await sendMessage(chatId, formatCrowdTestReport());
+      break;
+    }
+
+    case '/rankings': {
+      const rankings = getConfigRankings();
+      if (rankings.length === 0) {
+        await sendMessage(chatId, '📊 هنوز گزارشی ثبت نشده. با /test شروع کنید!');
+        break;
+      }
+
+      const lines = ['🏆 <b>رنکینگ سرورها:</b>', ''];
+      for (const r of rankings.slice(0, 10)) {
+        const medal = r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : `${r.rank}.`;
+        const bar = '█'.repeat(Math.round(r.reliability / 10));
+        lines.push(`${medal} <code>${r.host}:${r.port}</code>`);
+        lines.push(`  📊 ${r.reliability}% ${bar} | ⚡ ${r.avgLatency || '?'}ms`);
+      }
+
+      await sendMessage(chatId, lines.join('\n'));
+      break;
+    }
+
+    // ─── Config Sender ───
+
+    case '/send': {
+      const data = loadResults();
+      if (!data || !data.configs) {
+        await sendMessage(chatId, '❌ داده‌ای موجود نیست.');
+        break;
+      }
+
+      const configs = data.configs.filter(c => c.alive).slice(0, 5);
+      if (configs.length === 0) {
+        await sendMessage(chatId, '❌ کانفیگ فعالی موجود نیست.');
+        break;
+      }
+
+      const lines = ['⚡ <b>بهترین کانفیگ‌ها برای شما:</b>', ''];
+
+      for (let i = 0; i < configs.length; i++) {
+        const c = configs[i];
+        const flag = getFlag(c.country);
+        const lat = c.latency ? `${c.latency}ms` : '-';
+        lines.push(`${i + 1}. ${flag} <code>${c.host}:${c.port}</code>`);
+        lines.push(`   📊 ${c.protocol?.toUpperCase()} | ⚡ ${lat} | ⭐ ${c.score || 0}`);
+      }
+
+      lines.push('');
+      lines.push('📌 <b>قبل از وصل شدن:</b>');
+      lines.push('1️⃣ سابسکریپشن رو آپدیت کنید');
+      lines.push('2️⃣ یکی از سرورها رو انتخاب کنید');
+      lines.push('3️⃣ وصل شوید');
+      lines.push('4️⃣ با /test گزارش بدید');
+      lines.push('');
+      lines.push(`🔗 <b>سابسکریپشن:</b>\n<code>${SUB_LINK}</code>`);
+
+      await sendMessage(chatId, lines.join('\n'));
+      break;
+    }
+
+    case '/update': {
+      await sendMessage(chatId, `🔄 <b>قبل از وصل شدن آپدیت کنید!</b>
+
+1️⃣ سابسکریپشن رو کپی کنید:
+<code>${SUB_LINK}</code>
+
+2️⃣ در V2RayNG/Sing-box:
+   منو → Subscription Group → آپدیت
+
+3️⃣ بعد از آپدیت، یکی از سرورها رو انتخاب کنید
+
+4️⃣ وصل شوید!
+
+⚠️ بدون آپدیت، کانفیگ‌های قدیمی کار نمی‌کنند!`);
+      break;
+    }
+
     case '/help':
       await sendMessage(chatId, HELP_MSG);
       break;
@@ -284,6 +441,41 @@ async function handleCommand(chatId, text) {
     default:
       await sendMessage(chatId, `❓ دستور نامعتبر: ${cmd}\nبرای راهنما /help را بزنید.`);
   }
+}
+
+async function handleSend(chatId) {
+  const data = loadResults();
+  if (!data || !data.configs) {
+    await sendMessage(chatId, '❌ داده‌ای موجود نیست.');
+    return;
+  }
+
+  const configs = data.configs.filter(c => c.alive).slice(0, 5);
+  if (configs.length === 0) {
+    await sendMessage(chatId, '❌ کانفیگ فعالی موجود نیست.');
+    return;
+  }
+
+  const lines = ['⚡ <b>بهترین کانفیگ‌ها برای شما:</b>', ''];
+
+  for (let i = 0; i < configs.length; i++) {
+    const c = configs[i];
+    const flag = getFlag(c.country);
+    const lat = c.latency ? `${c.latency}ms` : '-';
+    lines.push(`${i + 1}. ${flag} <code>${c.host}:${c.port}</code>`);
+    lines.push(`   📊 ${c.protocol?.toUpperCase()} | ⚡ ${lat} | ⭐ ${c.score || 0}`);
+  }
+
+  lines.push('');
+  lines.push('📌 <b>قبل از وصل شدن:</b>');
+  lines.push('1️⃣ سابسکریپشن رو آپدیت کنید');
+  lines.push('2️⃣ یکی از سرورها رو انتخاب کنید');
+  lines.push('3️⃣ وصل شوید');
+  lines.push('4️⃣ با /test گزارش بدید');
+  lines.push('');
+  lines.push(`🔗 <b>سابسکریپشن:</b>\n<code>${SUB_LINK}</code>`);
+
+  await sendMessage(chatId, lines.join('\n'));
 }
 
 async function handleCallbackQuery(callbackQuery) {
@@ -309,6 +501,41 @@ async function handleCallbackQuery(callbackQuery) {
     case 'cmd_countries':
       await sendMessage(chatId, getCountryList());
       break;
+    case 'cmd_send':
+      await handleSend(chatId);
+      break;
+    case 'cmd_update':
+      await sendMessage(chatId, `🔄 <b>قبل از وصل شدن آپدیت کنید!</b>
+
+1️⃣ سابسکریپشن رو کپی کنید:
+<code>${SUB_LINK}</code>
+
+2️⃣ در V2RayNG/Sing-box:
+   منو → Subscription Group → آپدیت
+
+3️⃣ بعد از آپدیت، یکی از سرورها رو انتخاب کنید
+
+4️⃣ وصل شوید!
+
+⚠️ بدون آپدیت، کانفیگ‌های قدیمی کار نمی‌کنند!`);
+      break;
+    case 'cmd_crowd':
+      await sendMessage(chatId, formatCrowdTestReport());
+      break;
+    case 'cmd_rankings': {
+      const rankings = getConfigRankings();
+      if (rankings.length === 0) {
+        await sendMessage(chatId, '📊 هنوز گزارشی ثبت نشده.');
+        break;
+      }
+      const lines = ['🏆 <b>رنکینگ سرورها:</b>', ''];
+      for (const r of rankings.slice(0, 10)) {
+        const medal = r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : `${r.rank}.`;
+        lines.push(`${medal} <code>${r.host}:${r.port}</code> — ${r.reliability}% | ${r.avgLatency || '?'}ms`);
+      }
+      await sendMessage(chatId, lines.join('\n'));
+      break;
+    }
   }
 }
 

@@ -332,7 +332,7 @@ function writeOutput(configs) {
   const distDir = path.join(process.cwd(), 'dist');
   if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
 
-  const dummyInfoServer = `vless://00000000-0000-0000-0000-000000000000@127.0.0.1:8080?type=tcp&security=none#00-UPDATE-SUB-LINK`;
+  const dummyInfoServer = `vless://00000000-0000-0000-0000-000000000000@127.0.0.1:8080?type=tcp&security=none#00-%D8%A2%D9%BE%D8%AF%DB%8C%D8%AA-%DA%A9%D9%86%DB%8C%D8%AF-%D8%A7%D8%B2-%D8%B7%D8%B1%DB%8C%D9%82-%D8%A8%D8%A7%D8%B2%D8%B1%D8%B3%D8%A7%D9%86%DB%8C`;
   const finalConfigs = [dummyInfoServer, ...configs];
 
   const plainText = finalConfigs.join('\n').trim();
