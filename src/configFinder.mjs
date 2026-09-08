@@ -13,6 +13,8 @@ import { getCountryFlag, getCountryName, formatServerName } from './country.mjs'
 import { analyzeCensorship, getCensorSummary } from './antiCensor.mjs';
 import { runBatchSpeedTest, formatSpeed } from './speedTest.mjs';
 import { getGlobalStats } from './gamification.mjs';
+import { performFailover, formatFailoverReport } from './autoFailover.mjs';
+import { generateUptimeReport, formatUptimeReport, generateUptimeHTML } from './uptimeReport.mjs';
 
 function parseRawConfigs(rawData) {
   if (!rawData || typeof rawData !== 'string') return [];
@@ -171,7 +173,7 @@ export async function runTestWorkflow(options = {}) {
   } = options;
 
   // Step 1: Fetch
-  const fetchSpinner = ora('مرحله ۱/۵: دریافت کانفیگ‌ها...').start();
+  const fetchSpinner = ora('مرحله ۱/۹: دریافت کانفیگ‌ها...').start();
   const { rawConfigs, successCount, failCount } = await fetchAllConfigs(fetchSpinner);
 
   if (rawConfigs.length === 0) {
@@ -180,7 +182,7 @@ export async function runTestWorkflow(options = {}) {
   }
 
   // Step 2: Dedup
-  fetchSpinner.text = 'مرحله ۲/۵: حذف تکرارها...';
+  fetchSpinner.text = 'مرحله ۲/۹: حذف تکرارها...';
   const vlessConfigs = rawConfigs.filter(c => c.startsWith('vless://'));
   const otherConfigs = rawConfigs.filter(c => !c.startsWith('vless://'));
   const sorted = [...vlessConfigs, ...otherConfigs];
@@ -199,9 +201,9 @@ export async function runTestWorkflow(options = {}) {
   fetchSpinner.succeed(`${rawConfigs.length} خام (${successCount}/${SUBSCRIPTION_SOURCES.length} منبع) → ${uniqueConfigs.length} یکتا → ${configsToTest.length} برای تست`);
 
   // Step 3: Test
-  const testSpinner = ora('مرحله ۳/۵: تست شبکه (TCP + TLS + Speed)...').start();
+  const testSpinner = ora('مرحله ۳/۹: تست شبکه (TCP + TLS + Speed)...').start();
   const testedResults = await runTests(configsToTest, (tested, total) => {
-    testSpinner.text = `مرحله ۳/۵: تست شبکه... ${tested}/${total}`;
+    testSpinner.text = `مرحله ۳/۹: تست شبکه... ${tested}/${total}`;
   });
 
   const aliveCount = testedResults.filter(r => r.alive).length;
@@ -209,7 +211,7 @@ export async function runTestWorkflow(options = {}) {
   testSpinner.succeed(`تست تمام شد: ${aliveCount} زنده | ${tlsCount} TLS موفق`);
 
   // Step 4: Filter
-  const filterSpinner = ora('مرحله ۴/۵: فیلتر هوشمند...').start();
+  const filterSpinner = ora('مرحله ۴/۹: فیلتر هوشمند...').start();
   const filtered = await filterConfigs(testedResults, {
     countryInclude,
     countryExclude,
@@ -222,28 +224,40 @@ export async function runTestWorkflow(options = {}) {
   });
 
   // Step 5: Health tracking
-  const healthSpinner = ora('مرحله ۵/۷: بروزرسانی تاریخچه سلامت...').start();
+  const healthSpinner = ora('مرحله ۵/۹: بروزرسانی تاریخچه سلامت...').start();
   const health = updateHealth(testedResults);
   const healthStats = getHealthStats(health);
   healthSpinner.succeed(`تاریخچه بروزرسانی شد: ${healthStats.healthyServers} سالم | ${healthStats.unstableServers} ناپایدار | ${healthStats.deadServers} مرده`);
 
   // Step 6: Anti-censorship analysis
-  const censorSpinner = ora('مرحله ۶/۷: تحلیل ضد سانسور...').start();
+  const censorSpinner = ora('مرحله ۶/۹: تحلیل ضد سانسور...').start();
   const censorResults = await analyzeCensorship(filtered, (done, total) => {
-    censorSpinner.text = `مرحله ۶/۷: تحلیل ضد سانسور... ${done}/${total}`;
+    censorSpinner.text = `مرحله ۶/۹: تحلیل ضد سانسور... ${done}/${total}`;
   });
   const censorSummary = getCensorSummary(censorResults);
   censorSpinner.succeed(`تحلیل ضد سانسور: ${censorSummary.accessible} قابل دسترس | ${censorSummary.likelyBlocked} احتمالاً مسدود | میانگین امتیاز: ${censorSummary.avgCensorScore}`);
 
   // Step 7: Speed estimation
-  const speedSpinner = ora('مرحله ۷/۷: تخمین سرعت...').start();
+  const speedSpinner = ora('مرحله ۷/۹: تخمین سرعت...').start();
   const topConfigs = filtered.slice(0, 20);
   const speedResults = await runBatchSpeedTest(topConfigs, (done, total) => {
-    speedSpinner.text = `مرحله ۷/۷: تست سرعت... ${done}/${total}`;
+    speedSpinner.text = `مرحله ۷/۹: تست سرعت... ${done}/${total}`;
   }, 5);
   const fastServers = speedResults.filter(s => s.avgSpeed > 0).length;
   const bestSpeed = speedResults.reduce((max, s) => Math.max(max, s.avgSpeed), 0);
   speedSpinner.succeed(`سرعت: ${fastServers} سرور تست شد | بهترین: ${formatSpeed(bestSpeed)}`);
+
+  // Step 8: Auto-Failover
+  const failoverSpinner = ora('مرحله ۸/۹: بررسی Auto-Failover...').start();
+  const failoverResult = performFailover(filtered);
+  failoverSpinner.succeed(failoverResult.message);
+
+  // Step 9: Uptime Report
+  const reportSpinner = ora('مرحله ۹/۹: تولید گزارش آپتایم...').start();
+  const uptimeReport = generateUptimeReport();
+  const uptimeHTML = generateUptimeHTML(uptimeReport);
+  fs.writeFileSync(path.join(process.cwd(), 'dist', 'uptime-report.html'), uptimeHTML, 'utf-8');
+  reportSpinner.succeed(`گزارش آپتایم: ${uptimeReport.summary?.totalServers || 0} سرور | آپتایم: ${uptimeReport.summary?.avgUptime24h || 0}%`);
 
   // Rename with MRCODAD branding + country flag
   const renamed = filtered.map((cfg, i) => safeRenameConfig(cfg.raw, i, cfg.country, cfg.protocol)).filter(Boolean);
@@ -284,11 +298,31 @@ export async function runTestWorkflow(options = {}) {
     host: s.host, port: s.port, avgSpeed: s.avgSpeed, tlsLatency: s.tlsLatency, grade: s.grade,
   }));
   resultsJson.gamification = getGlobalStats();
+  resultsJson.failover = {
+    changed: failoverResult.changed,
+    removed: failoverResult.removed,
+    added: failoverResult.added,
+  };
+  resultsJson.uptimeReport = {
+    generated: uptimeReport.generated,
+    summary: uptimeReport.summary,
+    bestServers: uptimeReport.bestServers,
+    worstServers: uptimeReport.worstServers,
+    byCountry: uptimeReport.byCountry,
+  };
   generateDashboard(resultsJson);
   generateApiFiles(filtered);
 
   // Telegram notification
   await sendTelegramNotification(resultsJson.summary);
+
+  // Send failover notification if there were changes
+  if (failoverResult.changed) {
+    await sendTelegramNotification({
+      ...resultsJson.summary,
+      failoverMessage: formatFailoverReport(failoverResult),
+    });
+  }
 }
 
 function writeOutput(configs) {
