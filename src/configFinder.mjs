@@ -106,6 +106,7 @@ function generateResultsJson(filteredConfigs, testedResults, totalFetched, total
       tested: testedResults.length,
       alive: testedResults.filter(r => r.alive).length,
       tlsOk: testedResults.filter(r => r.tlsOk).length,
+      vlessOk: testedResults.filter(r => r.vlessOk).length,
       passedFilter: filteredConfigs.length,
     },
     byCountry,
@@ -119,6 +120,7 @@ function generateResultsJson(filteredConfigs, testedResults, totalFetched, total
       countryName: r.country ? getCountryName(r.country) : 'نامشخص',
       alive: r.alive,
       tlsOk: r.tlsOk,
+      vlessOk: r.vlessOk || false,
       latency: r.latency,
       score: r.score || 0,
     })),
@@ -197,7 +199,7 @@ export async function runTestWorkflow(options = {}) {
     }
   }
 
-  const configsToTest = uniqueConfigs.slice(0, 300);
+  const configsToTest = uniqueConfigs.slice(0, 500);
   fetchSpinner.succeed(`${rawConfigs.length} خام (${successCount}/${SUBSCRIPTION_SOURCES.length} منبع) → ${uniqueConfigs.length} یکتا → ${configsToTest.length} برای تست`);
 
   // Step 3: Test
@@ -274,7 +276,8 @@ export async function runTestWorkflow(options = {}) {
 
   console.log(chalk.cyan('\n--- آمار نهایی ---'));
   console.log(chalk.white(`  خام: ${rawConfigs.length} | یکتا: ${uniqueConfigs.length}`));
-  console.log(chalk.white(`  تست شده: ${testedResults.length} | زنده: ${aliveCount} | TLS: ${tlsCount}`));
+  const vlessCount = testedResults.filter(r => r.vlessOk).length;
+  console.log(chalk.white(`  تست شده: ${testedResults.length} | زنده: ${aliveCount} | TLS: ${tlsCount} | VLESS: ${vlessCount}`));
   console.log(chalk.green(`  نهایی: ${renamed.length}`));
   console.log(chalk.cyan('  پروتکل:'), protocolStats);
   if (Object.keys(countryStats).length > 0) {

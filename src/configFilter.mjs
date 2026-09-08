@@ -56,12 +56,20 @@ function pathScore(result) {
 
 export function scoreConfig(result) {
   if (!result.alive) return 0;
-  return protocolScore(result)
+
+  let score = protocolScore(result)
     + latencyScore(result.latency)
     + tlsScore(result)
     + portScore(result)
     + sniScore(result)
     + pathScore(result);
+
+  // VLESS handshake success = high confidence this config works
+  if (result.vlessOk) score += 20;
+  // TLS success but VLESS not tested = medium confidence
+  else if (result.tlsOk) score += 5;
+
+  return score;
 }
 
 // --- Country detection ---
@@ -141,7 +149,19 @@ export async function filterConfigs(testedConfigs, options = {}) {
     return true;
   });
 
-  filtered.sort((a, b) => b.score - a.score);
+  // Prioritize VLESS-validated configs (vlessOk = true)
+  const vlessValidated = filtered.filter(r => r.vlessOk);
+  const tlsOnly = filtered.filter(r => !r.vlessOk && r.tlsOk);
 
-  return filtered;
+  // Sort each group by score
+  vlessValidated.sort((a, b) => b.score - a.score);
+  tlsOnly.sort((a, b) => b.score - a.score);
+
+  // Prefer VLESS-validated, fill with TLS-only if needed
+  const result = [...vlessValidated];
+  if (result.length < 50) {
+    result.push(...tlsOnly.slice(0, 50 - result.length));
+  }
+
+  return result;
 }
