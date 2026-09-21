@@ -1,32 +1,19 @@
 {
-  "timestamp": "2026-09-21T14:00:56.633Z",
+  "timestamp": "2026-09-21T14:23:01.257Z",
   "summary": {
     "totalFetched": 16464,
-    "totalUnique": 16232,
-    "tested": 50,
-    "alive": 50,
-    "tlsOk": 50,
-    "vlessOk": 48,
-    "passedFilter": 50
+    "totalUnique": 16233,
+    "tested": 51,
+    "alive": 51,
+    "tlsOk": 51,
+    "vlessOk": 51,
+    "passedFilter": 51
   },
   "byCountry": {},
   "byProtocol": {
-    "vless": 50
+    "vless": 51
   },
   "configs": [
-    {
-      "protocol": "vless",
-      "host": "104.16.72.101",
-      "port": 443,
-      "country": null,
-      "flag": "🌐",
-      "countryName": "نامشخص",
-      "alive": true,
-      "tlsOk": true,
-      "vlessOk": true,
-      "latency": 40,
-      "score": 68
-    },
     {
       "protocol": "vless",
       "host": "173.245.58.75",
@@ -37,12 +24,12 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 26,
+      "latency": 33,
       "score": 68
     },
     {
       "protocol": "vless",
-      "host": "89.116.250.135",
+      "host": "45.131.211.136",
       "port": 443,
       "country": null,
       "flag": "🌐",
@@ -50,7 +37,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 32,
+      "latency": 29,
       "score": 68
     },
     {
@@ -63,20 +50,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 24,
-      "score": 68
-    },
-    {
-      "protocol": "vless",
-      "host": "104.17.122.18",
-      "port": 443,
-      "country": null,
-      "flag": "🌐",
-      "countryName": "نامشخص",
-      "alive": true,
-      "tlsOk": true,
-      "vlessOk": true,
-      "latency": 32,
+      "latency": 19,
       "score": 68
     },
     {
@@ -89,7 +63,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 18,
+      "latency": 27,
       "score": 68
     },
     {
@@ -107,19 +81,6 @@
     },
     {
       "protocol": "vless",
-      "host": "162.159.137.54",
-      "port": 443,
-      "country": null,
-      "flag": "🌐",
-      "countryName": "نامشخص",
-      "alive": true,
-      "tlsOk": true,
-      "vlessOk": true,
-      "latency": 32,
-      "score": 68
-    },
-    {
-      "protocol": "vless",
       "host": "172.66.44.97",
       "port": 443,
       "country": null,
@@ -128,7 +89,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 37,
+      "latency": 21,
       "score": 68
     },
     {
@@ -141,7 +102,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 35,
+      "latency": 16,
       "score": 68
     },
     {
@@ -154,7 +115,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 32,
+      "latency": 21,
       "score": 68
     },
     {
@@ -167,7 +128,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 53,
+      "latency": 32,
       "score": 68
     },
     {
@@ -180,7 +141,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 40,
+      "latency": 27,
       "score": 68
     },
     {
@@ -193,12 +154,12 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 37,
+      "latency": 41,
       "score": 68
     },
     {
       "protocol": "vless",
-      "host": "104.25.155.45",
+      "host": "162.159.237.80",
       "port": 443,
       "country": null,
       "flag": "🌐",
@@ -206,7 +167,46 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 48,
+      "latency": 38,
+      "score": 68
+    },
+    {
+      "protocol": "vless",
+      "host": "104.17.121.6",
+      "port": 8443,
+      "country": null,
+      "flag": "🌐",
+      "countryName": "نامشخص",
+      "alive": true,
+      "tlsOk": true,
+      "vlessOk": true,
+      "latency": 41,
+      "score": 68
+    },
+    {
+      "protocol": "vless",
+      "host": "104.16.3.5",
+      "port": 443,
+      "country": null,
+      "flag": "🌐",
+      "countryName": "نامشخص",
+      "alive": true,
+      "tlsOk": true,
+      "vlessOk": true,
+      "latency": 21,
+      "score": 68
+    },
+    {
+      "protocol": "vless",
+      "host": "104.26.14.85",
+      "port": 8443,
+      "country": null,
+      "flag": "🌐",
+      "countryName": "نامشخص",
+      "alive": true,
+      "tlsOk": true,
+      "vlessOk": true,
+      "latency": 38,
       "score": 68
     },
     {
@@ -219,20 +219,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 28,
-      "score": 68
-    },
-    {
-      "protocol": "vless",
-      "host": "104.17.148.22",
-      "port": 443,
-      "country": null,
-      "flag": "🌐",
-      "countryName": "نامشخص",
-      "alive": true,
-      "tlsOk": true,
-      "vlessOk": true,
-      "latency": 52,
+      "latency": 27,
       "score": 68
     },
     {
@@ -245,13 +232,39 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 32,
+      "latency": 45,
       "score": 68
     },
     {
       "protocol": "vless",
       "host": "104.19.33.7",
       "port": 8443,
+      "country": null,
+      "flag": "🌐",
+      "countryName": "نامشخص",
+      "alive": true,
+      "tlsOk": true,
+      "vlessOk": true,
+      "latency": 40,
+      "score": 68
+    },
+    {
+      "protocol": "vless",
+      "host": "172.66.156.82",
+      "port": 443,
+      "country": null,
+      "flag": "🌐",
+      "countryName": "نامشخص",
+      "alive": true,
+      "tlsOk": true,
+      "vlessOk": true,
+      "latency": 50,
+      "score": 68
+    },
+    {
+      "protocol": "vless",
+      "host": "104.18.212.0",
+      "port": 443,
       "country": null,
       "flag": "🌐",
       "countryName": "نامشخص",
@@ -271,33 +284,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 37,
-      "score": 68
-    },
-    {
-      "protocol": "vless",
-      "host": "172.64.229.30",
-      "port": 443,
-      "country": null,
-      "flag": "🌐",
-      "countryName": "نامشخص",
-      "alive": true,
-      "tlsOk": true,
-      "vlessOk": true,
-      "latency": 32,
-      "score": 68
-    },
-    {
-      "protocol": "vless",
-      "host": "104.16.89.120",
-      "port": 443,
-      "country": null,
-      "flag": "🌐",
-      "countryName": "نامشخص",
-      "alive": true,
-      "tlsOk": true,
-      "vlessOk": true,
-      "latency": 38,
+      "latency": 20,
       "score": 68
     },
     {
@@ -310,12 +297,12 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 20,
+      "latency": 26,
       "score": 68
     },
     {
       "protocol": "vless",
-      "host": "172.67.223.194",
+      "host": "172.64.147.79",
       "port": 443,
       "country": null,
       "flag": "🌐",
@@ -323,7 +310,20 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 63,
+      "latency": 33,
+      "score": 68
+    },
+    {
+      "protocol": "vless",
+      "host": "172.64.229.173",
+      "port": 443,
+      "country": null,
+      "flag": "🌐",
+      "countryName": "نامشخص",
+      "alive": true,
+      "tlsOk": true,
+      "vlessOk": true,
+      "latency": 32,
       "score": 68
     },
     {
@@ -336,12 +336,25 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 46,
+      "latency": 43,
       "score": 68
     },
     {
       "protocol": "vless",
-      "host": "104.18.42.98",
+      "host": "162.159.81.68",
+      "port": 8443,
+      "country": null,
+      "flag": "🌐",
+      "countryName": "نامشخص",
+      "alive": true,
+      "tlsOk": true,
+      "vlessOk": true,
+      "latency": 47,
+      "score": 68
+    },
+    {
+      "protocol": "vless",
+      "host": "172.64.145.186",
       "port": 443,
       "country": null,
       "flag": "🌐",
@@ -349,7 +362,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 22,
+      "latency": 23,
       "score": 65
     },
     {
@@ -362,7 +375,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 25,
+      "latency": 17,
       "score": 65
     },
     {
@@ -375,7 +388,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 31,
+      "latency": 27,
       "score": 65
     },
     {
@@ -388,7 +401,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 37,
+      "latency": 35,
       "score": 65
     },
     {
@@ -401,7 +414,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 23,
+      "latency": 20,
       "score": 65
     },
     {
@@ -414,7 +427,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 38,
+      "latency": 41,
       "score": 65
     },
     {
@@ -427,7 +440,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 38,
+      "latency": 23,
       "score": 65
     },
     {
@@ -440,7 +453,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 39,
+      "latency": 31,
       "score": 65
     },
     {
@@ -453,33 +466,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 26,
-      "score": 65
-    },
-    {
-      "protocol": "vless",
-      "host": "104.19.13.183",
-      "port": 443,
-      "country": null,
-      "flag": "🌐",
-      "countryName": "نامشخص",
-      "alive": true,
-      "tlsOk": true,
-      "vlessOk": true,
-      "latency": 40,
-      "score": 65
-    },
-    {
-      "protocol": "vless",
-      "host": "162.159.16.154",
-      "port": 443,
-      "country": null,
-      "flag": "🌐",
-      "countryName": "نامشخص",
-      "alive": true,
-      "tlsOk": true,
-      "vlessOk": true,
-      "latency": 56,
+      "latency": 22,
       "score": 65
     },
     {
@@ -492,7 +479,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 35,
+      "latency": 31,
       "score": 65
     },
     {
@@ -505,7 +492,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 57,
+      "latency": 39,
       "score": 65
     },
     {
@@ -518,7 +505,20 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 59,
+      "latency": 31,
+      "score": 63
+    },
+    {
+      "protocol": "vless",
+      "host": "172.64.79.63",
+      "port": 2053,
+      "country": null,
+      "flag": "🌐",
+      "countryName": "نامشخص",
+      "alive": true,
+      "tlsOk": true,
+      "vlessOk": true,
+      "latency": 36,
       "score": 63
     },
     {
@@ -531,7 +531,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 21,
+      "latency": 20,
       "score": 63
     },
     {
@@ -544,7 +544,20 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 18,
+      "latency": 19,
+      "score": 63
+    },
+    {
+      "protocol": "vless",
+      "host": "104.19.213.131",
+      "port": 2096,
+      "country": null,
+      "flag": "🌐",
+      "countryName": "نامشخص",
+      "alive": true,
+      "tlsOk": true,
+      "vlessOk": true,
+      "latency": 47,
       "score": 63
     },
     {
@@ -557,33 +570,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 17,
-      "score": 63
-    },
-    {
-      "protocol": "vless",
-      "host": "104.16.72.110",
-      "port": 2087,
-      "country": null,
-      "flag": "🌐",
-      "countryName": "نامشخص",
-      "alive": true,
-      "tlsOk": true,
-      "vlessOk": true,
-      "latency": 19,
-      "score": 63
-    },
-    {
-      "protocol": "vless",
-      "host": "104.16.161.143",
-      "port": 2096,
-      "country": null,
-      "flag": "🌐",
-      "countryName": "نامشخص",
-      "alive": true,
-      "tlsOk": true,
-      "vlessOk": true,
-      "latency": 38,
+      "latency": 39,
       "score": 63
     },
     {
@@ -596,8 +583,47 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 23,
+      "latency": 35,
       "score": 63
+    },
+    {
+      "protocol": "vless",
+      "host": "104.18.42.54",
+      "port": 2096,
+      "country": null,
+      "flag": "🌐",
+      "countryName": "نامشخص",
+      "alive": true,
+      "tlsOk": true,
+      "vlessOk": true,
+      "latency": 37,
+      "score": 63
+    },
+    {
+      "protocol": "vless",
+      "host": "104.17.158.136",
+      "port": 2053,
+      "country": null,
+      "flag": "🌐",
+      "countryName": "نامشخص",
+      "alive": true,
+      "tlsOk": true,
+      "vlessOk": true,
+      "latency": 29,
+      "score": 63
+    },
+    {
+      "protocol": "vless",
+      "host": "104.17.19.159",
+      "port": 2083,
+      "country": null,
+      "flag": "🌐",
+      "countryName": "نامشخص",
+      "alive": true,
+      "tlsOk": true,
+      "vlessOk": true,
+      "latency": 19,
+      "score": 60
     },
     {
       "protocol": "vless",
@@ -609,7 +635,7 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 55,
+      "latency": 17,
       "score": 60
     },
     {
@@ -622,7 +648,20 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 47,
+      "latency": 40,
+      "score": 60
+    },
+    {
+      "protocol": "vless",
+      "host": "172.64.53.215",
+      "port": 2083,
+      "country": null,
+      "flag": "🌐",
+      "countryName": "نامشخص",
+      "alive": true,
+      "tlsOk": true,
+      "vlessOk": true,
+      "latency": 22,
       "score": 60
     },
     {
@@ -635,50 +674,24 @@
       "alive": true,
       "tlsOk": true,
       "vlessOk": true,
-      "latency": 42,
+      "latency": 30,
       "score": 60
-    },
-    {
-      "protocol": "vless",
-      "host": "169.40.42.212",
-      "port": 443,
-      "country": null,
-      "flag": "🌐",
-      "countryName": "نامشخص",
-      "alive": true,
-      "tlsOk": true,
-      "vlessOk": false,
-      "latency": 114,
-      "score": 75
-    },
-    {
-      "protocol": "vless",
-      "host": "104.24.32.2",
-      "port": 443,
-      "country": null,
-      "flag": "🌐",
-      "countryName": "نامشخص",
-      "alive": true,
-      "tlsOk": true,
-      "vlessOk": false,
-      "latency": 37,
-      "score": 73
     }
   ],
   "health": {
     "totalServers": 4860,
-    "healthyServers": 4303,
-    "unstableServers": 39,
+    "healthyServers": 4301,
+    "unstableServers": 41,
     "deadServers": 518,
     "avgUptime24h": 90,
     "avgUptime7d": 90
   },
   "censor": {
-    "total": 50,
-    "accessible": 50,
+    "total": 51,
+    "accessible": 51,
     "likelyBlocked": 0,
     "riskDistribution": {
-      "low": 50,
+      "low": 51,
       "medium": 0,
       "high": 0,
       "very_high": 0
@@ -687,143 +700,143 @@
   },
   "speeds": [
     {
-      "host": "104.16.72.101",
-      "port": 443,
-      "avgSpeed": 2465,
-      "tlsLatency": 42,
-      "grade": "A+"
-    },
-    {
       "host": "173.245.58.75",
       "port": 443,
-      "avgSpeed": 2489,
-      "tlsLatency": 53,
+      "avgSpeed": 3739,
+      "tlsLatency": 28,
       "grade": "A+"
     },
     {
-      "host": "89.116.250.135",
+      "host": "45.131.211.136",
       "port": 443,
-      "avgSpeed": 2570,
-      "tlsLatency": 28,
+      "avgSpeed": 4168,
+      "tlsLatency": 24,
       "grade": "A+"
     },
     {
       "host": "162.159.38.119",
       "port": 443,
-      "avgSpeed": 2447,
-      "tlsLatency": 23,
-      "grade": "A+"
-    },
-    {
-      "host": "104.17.122.18",
-      "port": 443,
-      "avgSpeed": 3766,
-      "tlsLatency": 33,
+      "avgSpeed": 2780,
+      "tlsLatency": 18,
       "grade": "A+"
     },
     {
       "host": "45.130.125.207",
       "port": 443,
-      "avgSpeed": 1633,
-      "tlsLatency": 40,
+      "avgSpeed": 4365,
+      "tlsLatency": 31,
       "grade": "A+"
     },
     {
       "host": "162.159.38.119",
       "port": 443,
-      "avgSpeed": 3501,
-      "tlsLatency": 24,
-      "grade": "A+"
-    },
-    {
-      "host": "162.159.137.54",
-      "port": 443,
-      "avgSpeed": 947,
+      "avgSpeed": 4436,
       "tlsLatency": 21,
       "grade": "A+"
     },
     {
       "host": "172.66.44.97",
       "port": 443,
-      "avgSpeed": 2087,
-      "tlsLatency": 31,
+      "avgSpeed": 4498,
+      "tlsLatency": 35,
       "grade": "A+"
     },
     {
       "host": "172.66.40.99",
       "port": 443,
-      "avgSpeed": 2177,
-      "tlsLatency": 34,
+      "avgSpeed": 4021,
+      "tlsLatency": 32,
       "grade": "A+"
     },
     {
       "host": "173.245.49.194",
       "port": 443,
-      "avgSpeed": 4900,
-      "tlsLatency": 28,
+      "avgSpeed": 4271,
+      "tlsLatency": 29,
       "grade": "A+"
     },
     {
       "host": "104.16.152.241",
       "port": 443,
-      "avgSpeed": 4187,
-      "tlsLatency": 36,
+      "avgSpeed": 4304,
+      "tlsLatency": 26,
       "grade": "A+"
     },
     {
       "host": "104.17.112.132",
       "port": 443,
-      "avgSpeed": 3011,
-      "tlsLatency": 32,
+      "avgSpeed": 2316,
+      "tlsLatency": 23,
       "grade": "A+"
     },
     {
       "host": "172.64.153.88",
       "port": 443,
-      "avgSpeed": 2813,
-      "tlsLatency": 22,
+      "avgSpeed": 3121,
+      "tlsLatency": 27,
       "grade": "A+"
     },
     {
-      "host": "104.25.155.45",
+      "host": "162.159.237.80",
       "port": 443,
-      "avgSpeed": 4482,
-      "tlsLatency": 38,
+      "avgSpeed": 3911,
+      "tlsLatency": 35,
+      "grade": "A+"
+    },
+    {
+      "host": "104.17.121.6",
+      "port": 8443,
+      "avgSpeed": 3598,
+      "tlsLatency": 28,
+      "grade": "A+"
+    },
+    {
+      "host": "104.16.3.5",
+      "port": 443,
+      "avgSpeed": 5347,
+      "tlsLatency": 31,
+      "grade": "A+"
+    },
+    {
+      "host": "104.26.14.85",
+      "port": 8443,
+      "avgSpeed": 2186,
+      "tlsLatency": 18,
       "grade": "A+"
     },
     {
       "host": "162.159.45.24",
       "port": 8443,
-      "avgSpeed": 4354,
-      "tlsLatency": 24,
-      "grade": "A+"
-    },
-    {
-      "host": "104.17.148.22",
-      "port": 443,
-      "avgSpeed": 4923,
-      "tlsLatency": 34,
+      "avgSpeed": 2794,
+      "tlsLatency": 27,
       "grade": "A+"
     },
     {
       "host": "172.64.146.116",
       "port": 443,
-      "avgSpeed": 3625,
-      "tlsLatency": 30,
+      "avgSpeed": 4055,
+      "tlsLatency": 17,
       "grade": "A+"
     },
     {
       "host": "104.19.33.7",
       "port": 8443,
-      "avgSpeed": 3296,
-      "tlsLatency": 18,
+      "avgSpeed": 1945,
+      "tlsLatency": 33,
       "grade": "A+"
     },
     {
-      "host": "104.19.4.221",
+      "host": "172.66.156.82",
       "port": 443,
-      "avgSpeed": 4416,
-      "tlsLatency": 25,
+      "avgSpeed": 4159,
+      "tlsLatency": 31,
+      "grade": "A+"
+    },
+    {
+      "host": "104.18.212.0",
+      "port": 443,
+      "avgSpeed": 5227,
+      "tlsLatency": 23,
       "grade": "A+"
     }
   ],
@@ -839,14 +852,14 @@
     "added": []
   },
   "uptimeReport": {
-    "generated": "2026-09-21T14:00:56.445Z",
+    "generated": "2026-09-21T14:23:01.096Z",
     "summary": {
       "totalServers": 4860,
       "avgUptime24h": 89,
       "avgUptime7d": 90,
       "avgLatency": 1238,
-      "totalOutages": 1878,
-      "ongoingOutages": 555
+      "totalOutages": 1883,
+      "ongoingOutages": 559
     },
     "bestServers": [
       {
@@ -855,7 +868,7 @@
         "protocol": "vless",
         "country": null,
         "firstSeen": "2026-09-07T19:56:23.937Z",
-        "lastSeen": "2026-09-21T14:00:51.002Z",
+        "lastSeen": "2026-09-21T14:22:57.597Z",
         "uptime": {
           "24h": 100,
           "7d": 100,
@@ -1038,10 +1051,10 @@
           },
           {
             "hour": "2026-09-21T14",
-            "avgLatency": 241,
+            "avgLatency": 250,
             "minLatency": 241,
-            "maxLatency": 241,
-            "count": 1
+            "maxLatency": 258,
+            "count": 2
           }
         ]
       },
@@ -1838,23 +1851,23 @@
     ],
     "worstServers": [
       {
-        "host": "64.118.159.219",
-        "port": 443,
+        "host": "13.39.139.162",
+        "port": 22223,
         "protocol": "vless",
         "country": null,
-        "firstSeen": "2026-09-14T12:01:37.879Z",
-        "lastSeen": "2026-09-14T17:45:43.716Z",
+        "firstSeen": "2026-09-21T13:46:16.077Z",
+        "lastSeen": "2026-09-21T14:22:57.597Z",
         "uptime": {
-          "24h": 31,
-          "7d": 31,
-          "30d": 31,
-          "checks24h": 13,
-          "alive24h": 4
+          "24h": 33,
+          "7d": 33,
+          "30d": 33,
+          "checks24h": 3,
+          "alive24h": 1
         },
         "latency": {
-          "avg": 514,
-          "min": 500,
-          "max": 529
+          "avg": 131,
+          "min": 131,
+          "max": 131
         },
         "outages": {
           "total": 1,
@@ -1862,7 +1875,7 @@
           "ongoing": true,
           "recent": [
             {
-              "start": "2026-09-14T13:48:23.016Z",
+              "start": "2026-09-21T14:00:51.002Z",
               "end": null,
               "duration": null,
               "ongoing": true
@@ -1871,17 +1884,10 @@
         },
         "trend": [
           {
-            "hour": "2026-09-14T12",
-            "avgLatency": 514,
-            "minLatency": 500,
-            "maxLatency": 529,
-            "count": 3
-          },
-          {
-            "hour": "2026-09-14T13",
-            "avgLatency": 512,
-            "minLatency": 512,
-            "maxLatency": 512,
+            "hour": "2026-09-21T13",
+            "avgLatency": 131,
+            "minLatency": 131,
+            "maxLatency": 131,
             "count": 1
           }
         ]
